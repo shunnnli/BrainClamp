@@ -102,7 +102,7 @@ void setup() {
   target = 0; // Will be set to baseline later
   state = Idle;
 
-  // Turn PIDs OFF initially (manual mode)
+  // Set up PID
   if (startAutomatic){
     // Start PID immediately if startAutomatic == true
     myPID_inhibit.SetMode(AUTOMATIC);
@@ -114,9 +114,6 @@ void setup() {
     myPID_inhibit.SetMode(MANUAL);
     myPID_excite.SetMode(MANUAL);
   }
-
-  myPID_inhibit.SetMode(MANUAL);
-  myPID_excite.SetMode(MANUAL);
   myPID_inhibit.SetOutputLimits(minPIDOutput, maxPIDOutput);
   myPID_excite.SetOutputLimits(minPIDOutput, maxPIDOutput);
   myPID_inhibit.SetSampleTime(PIDSampleTime);

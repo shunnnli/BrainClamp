@@ -6,17 +6,16 @@ import numpy as np
 # Connect to Arduino (Change port as needed)
 ser = serial.Serial('COM3', 115200, timeout=1)
 
-# Desired dopamine level
-setpoint = 0.5
-
-# Function to read dopamine activity from Arduino
-def get_dopamine_activity():
+def get_arduino_data():
+    """Reads dopamine activity and setpoint from Arduino."""
     ser.flushInput()
     data = ser.readline().decode().strip()
+    
     try:
-        return float(data)
+        photometry, setpoint = map(float, data.split(","))  # Parse two values
+        return photometry, setpoint
     except ValueError:
-        return None  # Handle empty reads
+        return None, None  # Handle empty reads
 
 # Function to send six PID parameters to Arduino
 def send_pid_to_arduino(Kp1, Ki1, Kd1, Kp2, Ki2, Kd2):
@@ -37,13 +36,13 @@ def pid_objective(trial):
     send_pid_to_arduino(Kp1, Ki1, Kd1, Kp2, Ki2, Kd2)
 
     time.sleep(0.5)  # Allow Arduino to process and update
-    dopamine_activity = get_dopamine_activity()
+    photometry, setpoint = get_arduino_data()
 
-    if dopamine_activity is None:
+    if photometry is None:
         return np.inf  # Penalize if no data is received
 
     # Minimize the absolute difference between measured and desired dopamine level
-    return abs(dopamine_activity - setpoint)
+    return abs(photometry - setpoint)
 
 # Run Optuna optimization
 study = optuna.create_study(direction="minimize")

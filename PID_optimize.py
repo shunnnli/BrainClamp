@@ -47,7 +47,7 @@ def objective(trial):
     time.sleep(2)
     
     # Now, collect error measurements from the Arduino for a fixed duration
-    measure_duration = 30  # seconds
+    measure_duration = 15  # seconds
     start_time = time.time()
     error_sum = 0.0
     count = 0

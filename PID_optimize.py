@@ -6,16 +6,23 @@ import numpy as np
 # -----------------------
 # Set up serial connection
 # -----------------------
-# Replace 'COM3' with your port (e.g., '/dev/ttyUSB0' on Linux)
-ser = serial.Serial('COM4', 115200, timeout=1)
-time.sleep(2)  # Wait a moment for the serial connection to establish
+try:
+    ser = serial.Serial('COM4', 115200, timeout=1)
+    print("Serial connection opened")
+except Exception as e:
+    print("Error opening serial port:", e)
+    exit(1)
+
+time.sleep(2)  # Wait for the serial connection to initialize
 
 def objective(trial):
     """
     Objective function for Optuna.
     Suggests PID parameters, sends them to the Arduino in online tuning mode,
-    then reads the error measurements and returns the average absolute error.
+    then reads the error measurements and returns the average squared error.
     """
+    print(f"\n=== Starting Trial {trial.number} ===")
+    
     # Suggest PID parameters for inhibition (REVERSE) and excitation (DIRECT)
     kp_inhib = trial.suggest_float("Kp_inhib", 1, 20)
     ki_inhib = trial.suggest_float("Ki_inhib", 0, 1)
@@ -25,12 +32,19 @@ def objective(trial):
     kd_excite = trial.suggest_float("Kd_excite", 1, 200)
     
     # Build the command string to send to the Arduino.
-    # Format expected by Arduino: "T<kp_inhib>,<ki_inhib>,<kd_inhib>,<kp_excite>,<ki_excite>,<kd_excite>\n"
+    # Expected format: "T<kp_inhib>,<ki_inhib>,<kd_inhib>,<kp_excite>,<ki_excite>,<kd_excite>\n"
     cmd = "T" + f"{kp_inhib},{ki_inhib},{kd_inhib},{kp_excite},{ki_excite},{kd_excite}\n"
-    ser.write(cmd.encode())
-    ser.flush()  # Ensure data is sent immediately
+    print("Sending parameters to Arduino:", cmd.strip())
+    
+    try:
+        ser.write(cmd.encode())
+        ser.flush()  # Ensure data is sent immediately
+    except Exception as e:
+        print("Error sending parameters:", e)
+        return float('inf')
     
     # Give the Arduino time to process the new parameters and settle
+    print("Waiting 2 seconds for Arduino to settle...")
     time.sleep(2)
     
     # Now, collect error measurements from the Arduino for a fixed duration
@@ -42,36 +56,39 @@ def objective(trial):
     # Clear any old data in the input buffer
     ser.reset_input_buffer()
     
+    print("Collecting error measurements for 5 seconds...")
     while time.time() - start_time < measure_duration:
         if ser.in_waiting:
             try:
                 line = ser.readline().decode().strip()
-                # The Arduino prints error as a float value.
+                # Debug: print each received line (optional)
+                # print("Received line:", line)
                 error_val = float(line)
                 error_sum += abs(error_val)
                 count += 1
             except Exception as e:
-                # If parsing fails, ignore the line
+                # Ignore lines that cannot be parsed
                 continue
-    
-    # If no valid measurements were collected, return a high penalty.
+
     if count == 0:
+        print("No valid measurements received during trial. Returning high error.")
         return float('inf')
     
     avg_error = error_sum / count
-    print(f"Trial {trial.number}: Avg Error = {avg_error:.4f} | Params: "
-          f"Kp_inhib={kp_inhib:.2f}, Ki_inhib={ki_inhib:.2f}, Kd_inhib={kd_inhib:.2f}, "
-          f"Kp_excite={kp_excite:.2f}, Ki_excite={ki_excite:.2f}, Kd_excite={kd_excite:.2f}")
-    
+    print(f"Trial {trial.number} completed: Avg Squared Error = {avg_error:.4f} based on {count} samples")
     return avg_error
 
 if __name__ == '__main__':
-    # Create and run the Optuna study
+    print("Starting Optuna optimization...")
     study = optuna.create_study(direction='minimize')
-    study.optimize(objective, n_trials=100)
     
+    # Print progress update for each trial
+    study.optimize(objective, n_trials=100, show_progress_bar=True)
+    
+    print("\nOptimization completed!")
     print("Best parameters found:")
     print(study.best_params)
     
     # Close the serial connection
     ser.close()
+    print("Serial connection closed.")

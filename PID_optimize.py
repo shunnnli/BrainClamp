@@ -34,7 +34,7 @@ def objective(trial):
     # Build the command string to send to the Arduino.
     # Expected format: "T<kp_inhib>,<ki_inhib>,<kd_inhib>,<kp_excite>,<ki_excite>,<kd_excite>\n"
     cmd = "T" + f"{kp_inhib},{ki_inhib},{kd_inhib},{kp_excite},{ki_excite},{kd_excite}\n"
-    print("Sending parameters to Arduino:", cmd.strip())
+    # print("Sending parameters to Arduino...", cmd.strip())
     
     try:
         ser.write(cmd.encode())
@@ -44,11 +44,10 @@ def objective(trial):
         return float('inf')
     
     # Give the Arduino time to process the new parameters and settle
-    print("Waiting 2 seconds for Arduino to settle...")
     time.sleep(2)
     
     # Now, collect error measurements from the Arduino for a fixed duration
-    measure_duration = 5  # seconds
+    measure_duration = 30  # seconds
     start_time = time.time()
     error_sum = 0.0
     count = 0
@@ -61,7 +60,6 @@ def objective(trial):
         if ser.in_waiting:
             try:
                 line = ser.readline().decode().strip()
-                # Debug: print each received line (optional)
                 # print("Received line:", line)
                 error_val = float(line)
                 error_sum += abs(error_val)
@@ -78,12 +76,28 @@ def objective(trial):
     print(f"Trial {trial.number} completed: Avg Squared Error = {avg_error:.4f} based on {count} samples")
     return avg_error
 
+# ---- Callback for custom formatted trial output ----
+def trial_callback(study, trial):
+    params = trial.params
+    inhib = (f"Kp={params.get('Kp_inhib', 0):>6.2f}, "
+             f"Ki={params.get('Ki_inhib', 0):>6.2f}, "
+             f"Kd={params.get('Kd_inhib', 0):>6.2f}")
+    excite = (f"Kp={params.get('Kp_excite', 0):>6.2f}, "
+              f"Ki={params.get('Ki_excite', 0):>6.2f}, "
+              f"Kd={params.get('Kd_excite', 0):>6.2f}")
+    print(f"--> Trial {trial.number} finished: value = {trial.value:.4f}")
+    print(f"    Inhib:  {inhib}")
+    print(f"    Excite: {excite}\n")
+
+# Suppress default Optuna info messages
+optuna.logging.set_verbosity(optuna.logging.WARNING)
+
 if __name__ == '__main__':
     print("Starting Optuna optimization...")
     study = optuna.create_study(direction='minimize')
     
     # Print progress update for each trial
-    study.optimize(objective, n_trials=100, show_progress_bar=True)
+    study.optimize(objective, n_trials=100, callbacks=[trial_callback], show_progress_bar=True)
     
     print("\nOptimization completed!")
     print("Best parameters found:")

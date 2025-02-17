@@ -7,8 +7,9 @@
 // -----------------------
 // Global Flags & Modes
 // -----------------------
-bool onlineTuningMode = false;  // false = offline mode; true = online tuning mode
+bool onlineTuningMode = true;   // false = offline mode; true = online tuning mode
 bool useKalman = false;         // false = no Kalman filter; true = use Kalman filter
+bool startAutomatic = true;     // Set to true for AUTOMATIC startup, false for MANUAL (requires pressing '8')
 
 // -----------------------
 // Photometry & Baseline Params
@@ -102,6 +103,18 @@ void setup() {
   state = Idle;
 
   // Turn PIDs OFF initially (manual mode)
+  if (startAutomatic){
+    // Start PID immediately if startAutomatic == true
+    myPID_inhibit.SetMode(AUTOMATIC);
+    myPID_excite.SetMode(AUTOMATIC);
+    Start = millis();
+    End = 0;
+    state = Photometry;
+  } else {
+    myPID_inhibit.SetMode(MANUAL);
+    myPID_excite.SetMode(MANUAL);
+  }
+
   myPID_inhibit.SetMode(MANUAL);
   myPID_excite.SetMode(MANUAL);
   myPID_inhibit.SetOutputLimits(minPIDOutput, maxPIDOutput);
@@ -112,7 +125,7 @@ void setup() {
   Serial.println("---------------------PhotometryClamp---------------------");
   Serial.println("Toggles: online tuning: 't' | Kalman filter: 'k'");
   Serial.println("Command: start clamping: 8  | Stop clamping: 9");
-  Serial.println("---------------------PhotometryClamp---------------------");
+  Serial.println("---------------------------------------------------------");
 }
 
 // -----------------------
@@ -121,7 +134,6 @@ void setup() {
 void loop() {
   // --- Mode Control via Serial Commands ---
   // 't' toggles online tuning mode, 'k' toggles Kalman filter use.
-
   if (Serial.available() > 0) {
     char inChar = Serial.read();
     if (inChar == 't') {
@@ -172,7 +184,7 @@ void loop() {
       }
     }
     // '8' starts control (PID set to AUTOMATIC)
-    else if (inChar == '8') {
+    else if (inChar == '8' && Start == 0) {
       myPID_inhibit.SetMode(AUTOMATIC);
       myPID_excite.SetMode(AUTOMATIC);
       Serial.println("Received 8: PIDs set to AUTOMATIC");
@@ -263,9 +275,13 @@ void loop() {
       // Serial.print("Target:");
       // Serial.println(target);
 
-      // For debugging, print the error from inhibition PID
+      // Print error signal (used for online tuning)
+      double errorSignal = (target - input);
+      double squaredError = errorSignal * errorSignal;
+      Serial.println(squaredError);
+
       //Serial.print("Error: ");
-      Serial.println((target - input) * Kp_inhibit);
+      //Serial.println((target - input) * Kp_inhibit);
       //Serial.print("dInput: ");
       //Serial.println((input - lastInput)*Kd);
       // lastInput = input;

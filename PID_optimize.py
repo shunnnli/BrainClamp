@@ -93,8 +93,13 @@ def trial_callback(study, trial):
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
 if __name__ == '__main__':
-    print("Starting Optuna optimization...")
-    study = optuna.create_study(direction='minimize')
+    # Define study name: PID_<animal_name>_<today>
+    animal_name = input("Enter the animal name: ")
+    study_name = f"PID_{animal_name}_{time.strftime('%Y%m%d')}"
+    
+    study = optuna.create_study(direction='minimize',
+                                 study_name=study_name,
+                                 storage='sqlite:///PID_optimize.db')
     
     # Print progress update for each trial
     study.optimize(objective, n_trials=100, callbacks=[trial_callback], show_progress_bar=True)

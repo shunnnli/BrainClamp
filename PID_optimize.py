@@ -21,15 +21,22 @@ def objective(trial):
     Suggests PID parameters, sends them to the Arduino in online tuning mode,
     then reads the error measurements and returns the average squared error.
     """
-    print(f"\n=== Starting Trial {trial.number} ===")
-    
+    print(f"\n========= Starting trial {trial.number} =========")
     # Suggest PID parameters for inhibition (REVERSE) and excitation (DIRECT)
-    kp_inhib = trial.suggest_float("Kp_inhib", 1, 20)
-    ki_inhib = trial.suggest_float("Ki_inhib", 0, 1)
-    kd_inhib = trial.suggest_float("Kd_inhib", 1, 200)
-    kp_excite = trial.suggest_float("Kp_excite", 1, 20)
-    ki_excite = trial.suggest_float("Ki_excite", 0, 1)
-    kd_excite = trial.suggest_float("Kd_excite", 1, 200)
+    kp_inhib = trial.suggest_float("Kp_inhib", 1, 50, log=True)
+    ki_inhib = trial.suggest_float("Ki_inhib", 1, 20, log=True)
+    kd_inhib = trial.suggest_float("Kd_inhib", 50, 200, log=True)
+
+    # For excitation, always suggest, but if bidirectional is False, fix them to 0
+    if bidirectional:
+        kp_excite = trial.suggest_float("Kp_excite", 1, 50, log=True)
+        ki_excite = trial.suggest_float("Ki_excite", 1, 20, log=True)
+        kd_excite = trial.suggest_float("Kd_excite", 50, 200, log=True)
+    else:
+        # Use a degenerate search space to fix the values at 1
+        kp_excite = trial.suggest_float("Kp_excite", 1, 1, log=True)
+        ki_excite = trial.suggest_float("Ki_excite", 1, 1, log=True)
+        kd_excite = trial.suggest_float("Kd_excite", 1, 1, log=True)
     
     # Build the command string to send to the Arduino.
     # Expected format: "T<kp_inhib>,<ki_inhib>,<kd_inhib>,<kp_excite>,<ki_excite>,<kd_excite>\n"
@@ -55,7 +62,7 @@ def objective(trial):
     # Clear any old data in the input buffer
     ser.reset_input_buffer()
     
-    print("Collecting error measurements...")
+    print(f"\nTrial {trial.number}: collecting error measurements...")
     while time.time() - start_time < measure_duration:
         if ser.in_waiting:
             try:
@@ -73,7 +80,7 @@ def objective(trial):
         return float('inf')
     
     avg_error = error_sum / count
-    print(f"Trial {trial.number} completed: Avg Squared Error = {avg_error:.4f} based on {count} samples")
+    print(f"\nTrial {trial.number}: Avg Squared Error = {avg_error:.4f} based on {count} samples")
     return avg_error
 
 # ---- Callback for custom formatted trial output ----
@@ -96,10 +103,19 @@ if __name__ == '__main__':
     # Define study name: PID_<animal_name>_<today>
     animal_name = input("Enter the animal name: ")
     study_name = f"PID_{animal_name}_{time.strftime('%Y%m%d')}"
+
+    user_input = input("Does animal contain excitatory & inhibitory opsin? (y/n): ").strip().lower()
+    if user_input in ['y', 'yes']:
+        bidirectional = True
+    elif user_input in ['n', 'no']:
+        bidirectional = False
+    else:
+        print("Invalid input. Defaulting to False.")
+        bidirectional = False
     
     study = optuna.create_study(direction='minimize',
                                  study_name=study_name,
-                                 storage='sqlite:///PID_optimize.db',
+                                 storage='sqlite:///pid_optimize.db',
                                  load_if_exists=True)
     
     # Print progress update for each trial
@@ -108,6 +124,20 @@ if __name__ == '__main__':
     print("\nOptimization completed!")
     print("Best parameters found:")
     print(study.best_params)
+
+    # Send the best commands to arduino
+    best_params = study.best_params
+    command = "T{:.2f},{:.2f},{:.2f},{:.2f},{:.2f},{:.2f}\n".format(
+        best_params["Kp_inhib"],
+        best_params["Ki_inhib"],
+        best_params["Kd_inhib"],
+        best_params["Kp_excite"],
+        best_params["Ki_excite"],
+        best_params["Kd_excite"]
+    )
+    ser.write(command.encode())
+    ser.flush()
+    print("Best parameters sent to Arduino.")
     
     # Close the serial connection
     ser.close()

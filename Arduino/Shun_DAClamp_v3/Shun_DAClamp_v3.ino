@@ -40,6 +40,9 @@ double Kp_excite = 10, Ki_excite = 10, Kd_excite = 100;
 double minPIDOutput = 0;
 double maxPIDOutput = 255;
 
+// Define a small epsilon to avoid division by zero
+double epsilon = 1e-6;
+
 // -----------------------
 // PID Setup (using PID_v1 library)
 // -----------------------
@@ -158,9 +161,9 @@ void loop() {
       int idx4 = paramStr.indexOf(',', idx3+1);
       int idx5 = paramStr.indexOf(',', idx4+1);
       if (idx1 > 0 && idx2 > idx1 && idx3 > idx2 && idx4 > idx3 && idx5 > idx4) {
-        Kp_inhibit   = paramStr.substring(0, idx1).toFloat();
-        Ki_inhibit   = paramStr.substring(idx1+1, idx2).toFloat();
-        Kd_inhibit   = paramStr.substring(idx2+1, idx3).toFloat();
+        Kp_inhibit = paramStr.substring(0, idx1).toFloat();
+        Ki_inhibit = paramStr.substring(idx1+1, idx2).toFloat();
+        Kd_inhibit = paramStr.substring(idx2+1, idx3).toFloat();
         Kp_excite  = paramStr.substring(idx3+1, idx4).toFloat();
         Ki_excite  = paramStr.substring(idx4+1, idx5).toFloat();
         Kd_excite  = paramStr.substring(idx5+1).toFloat();
@@ -273,7 +276,7 @@ void loop() {
       // Serial.println(target);
 
       // Print error signal (used for online tuning)
-      double errorSignal = (target - input);
+      double errorSignal = (target - input); // / (target + epsilon)
       double squaredError = errorSignal * errorSignal;
       Serial.println(squaredError);
 

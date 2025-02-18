@@ -55,7 +55,7 @@ def objective(trial):
     # Clear any old data in the input buffer
     ser.reset_input_buffer()
     
-    print("Collecting error measurements for 5 seconds...")
+    print("Collecting error measurements...")
     while time.time() - start_time < measure_duration:
         if ser.in_waiting:
             try:
@@ -99,7 +99,8 @@ if __name__ == '__main__':
     
     study = optuna.create_study(direction='minimize',
                                  study_name=study_name,
-                                 storage='sqlite:///PID_optimize.db')
+                                 storage='sqlite:///PID_optimize.db',
+                                 load_if_exists=True)
     
     # Print progress update for each trial
     study.optimize(objective, n_trials=100, callbacks=[trial_callback], show_progress_bar=True)

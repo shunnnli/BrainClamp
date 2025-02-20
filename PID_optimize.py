@@ -2,6 +2,8 @@ import optuna
 import serial
 import time
 import numpy as np
+import pandas as pd
+import os
 
 # -----------------------
 # Set up serial connection
@@ -138,6 +140,14 @@ if __name__ == '__main__':
     ser.write(command.encode())
     ser.flush()
     print("Best parameters sent to Arduino.")
+
+    # Save the study results to a CSV file
+    df = study.trials_dataframe()
+    results_folder = "Optuna results"
+    os.makedirs(results_folder, exist_ok=True)
+    csv_path = os.path.join(results_folder, f"{study_name}.csv")
+    df.to_csv(csv_path, index=False)
+    print(f"Study results saved to {study_name}.csv")
     
     # Close the serial connection
     ser.close()

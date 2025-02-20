@@ -3,7 +3,7 @@
 #define Control 2
 
 #include <PID_v1.h>
-#include <DataTomeMvAvg.h>
+#include <DataTome.h>
 #include <DataTomeAnalysis.h>
 #include <math.h>
 
@@ -23,7 +23,8 @@ double rawSignal = 0;
 double signal = 0;
 
 unsigned long BaselineSumInWindow = 0;
-int nBaselineSample = 0;
+unsigned long nBaselineSample = 0;
+double BaselineAvgInWindow;
 double baseline;
 double baseline_std;
 double zscore;
@@ -42,9 +43,7 @@ NormalizeMethod normalizeMethod = ZSCORE;
 // -----------------------
 // Initialize arrays for moving statistics
 // -----------------------
-// CircularBuffer<float, 1800> baselineBuffer;
-// DataTomeMvAvg<int, unsigned long> signalAverage();
-DataTomeAnalysis<int, unsigned long> baselineWindow(1800);
+DataTomeAnalysis<int, unsigned long> baselineWindow(600);
 
 // -----------------------
 // PID Variables
@@ -57,7 +56,7 @@ double control_inhibit;    // Final control value for inhibition laser
 double control_excite;   // Final control value for excitation laser
 
 // Default PID parameters for inhibition (reverse action) & excitation (direct)
-double Kp_inhibit = 10, Ki_inhibit = 15, Kd_inhibit = 100;
+double Kp_inhibit = 10, Ki_inhibit = 0, Kd_inhibit = 50;
 double Kp_excite = 10, Ki_excite = 15, Kd_excite = 100;
 double minPIDOutput = 0;
 double maxPIDOutput = 255;
@@ -193,6 +192,7 @@ void loop() {
         digitalWrite(OutputPin_inhibit, HIGH);
         digitalWrite(OutputPin_excite, HIGH);
         End = millis();
+        Start = 0;
       }
     }
   }
@@ -209,7 +209,7 @@ void loop() {
     // Photometry state: process sensor data & calculate moving average and baseline
     case Photometry:
       rawSignal = analogRead(InputPin);
-      
+
       if (millis() - Start >= PhotometryWindow) {
         PhotometrySum += rawSignal;
 
@@ -223,12 +223,13 @@ void loop() {
         // Accumulate data of baseline sample (100ms)
         BaselineSumInWindow += signal;
         nBaselineSample++;
-
+        
         // Add each 100ms baseline sample to baselineWindow buffer
         if (nBaselineSample >= (100 / PhotometryWindow)) {
           BaselineAvgInWindow = BaselineSumInWindow / nBaselineSample;
-          nBaselineSample = 0;
           baselineWindow.push(BaselineAvgInWindow);
+          nBaselineSample = 0;
+          BaselineSumInWindow = 0;
         }
       } else {
         PhotometrySum += rawSignal;
@@ -239,7 +240,11 @@ void loop() {
     // Control state: run the PIDs, update target, and output control signals
     case Control:
       // Get baseline
-      baseline = baselineWindow.median();
+      if (baselineWindow.count() == 0){
+        baseline = signal;
+      } else{
+        baseline = baselineWindow.median();
+      }
       
       // Determine input & output
       switch (normalizeMethod) {
@@ -256,7 +261,7 @@ void loop() {
 
         case ZSCORE:
           // Calculate zscore for current input
-          baseline_std = baselineWndow.std();
+          baseline_std = baselineWindow.std();
           zscore = (baseline_std > 0) ? ((signal - baseline) / baseline_std) : 0;
           input = zscore;
           target = 0;
@@ -264,7 +269,7 @@ void loop() {
 
         case STD:
           // Normalized by std
-          baseline_std = baselineWndow.std();
+          baseline_std = baselineWindow.std();
           input = signal / baseline_std;
           target = baseline / baseline_std;
           break;
@@ -285,7 +290,12 @@ void loop() {
       // Print error signal (used for online tuning)
       double errorSignal = (target - input);
       double squaredError = errorSignal * errorSignal;
-      Serial.println(squaredError);
+      Serial.print("zscore: ");
+      Serial.println(zscore);
+      Serial.print("baseline: ");
+      Serial.println(baseline);
+      Serial.print("baseline std: ");
+      Serial.println(baseline_std);
       //Serial.println((input - lastInput)*Kd_inhibit / 255);
       
       state = Photometry; // Return to photometry for next sample

@@ -10,6 +10,7 @@
 bool onlineTuningMode = true;   // false = offline mode; true = online tuning mode
 bool useKalman = false;         // false = no Kalman filter; true = use Kalman filter
 bool startAutomatic = true;     // Set to true for AUTOMATIC startup, false for MANUAL (requires pressing '8')
+bool normalizePIDInput = true;  // Divide raw target & input by target
 
 // -----------------------
 // Photometry & Baseline Params
@@ -28,20 +29,18 @@ int nBaselineWindow = 0;
 // PID Variables
 // -----------------------
 double input;            // Filtered dopamine signal (after moving average / Kalman)
-double target;           // Desired dopamine level (baseline)
+double target = 0;           // Desired dopamine level (might be normalized)
+double baseline = 0;         // Dopamine baseline
 double output_inhibit;     // PID output for inhibition (controls inhibition laser)
 double output_excite;    // PID output for excitation (controls excitation laser)
 double control_inhibit;    // Final control value for inhibition laser
 double control_excite;   // Final control value for excitation laser
 
 // Default PID parameters for inhibition (reverse action) & excitation (direct)
-double Kp_inhibit = 10, Ki_inhibit = 10, Kd_inhibit = 100;
-double Kp_excite = 10, Ki_excite = 10, Kd_excite = 100;
+double Kp_inhibit = 10, Ki_inhibit = 15, Kd_inhibit = 100;
+double Kp_excite = 10, Ki_excite = 15, Kd_excite = 100;
 double minPIDOutput = 0;
 double maxPIDOutput = 255;
-
-// Define a small epsilon to avoid division by zero
-double epsilon = 1e-6;
 
 // -----------------------
 // PID Setup (using PID_v1 library)
@@ -53,7 +52,7 @@ PID myPID_excite(&input, &output_excite, &target, Kp_excite, Ki_excite, Kd_excit
 // Pin Definitions
 // -----------------------
 const byte InputPin = A0;
-const byte OutputPin_inhibit = 13;   // Inhibition laser pin
+const byte OutputPin_inhibit = 7;   // Inhibition laser pin
 const byte OutputPin_excite = 12;   // Excitation laser pin
 const byte TargetPin = 3;          // (Unused in this version)
 
@@ -102,10 +101,9 @@ void setup() {
   signal = analogRead(InputPin);
   // Option: initialize X_est for Kalman with first reading
   X_est = signal;
-  target = 0; // Will be set to baseline later
   state = Idle;
 
-  // Set up PID
+  // Turn PIDs OFF initially (manual mode)
   if (startAutomatic){
     // Start PID immediately if startAutomatic == true
     myPID_inhibit.SetMode(AUTOMATIC);
@@ -117,6 +115,7 @@ void setup() {
     myPID_inhibit.SetMode(MANUAL);
     myPID_excite.SetMode(MANUAL);
   }
+
   myPID_inhibit.SetOutputLimits(minPIDOutput, maxPIDOutput);
   myPID_excite.SetOutputLimits(minPIDOutput, maxPIDOutput);
   myPID_inhibit.SetSampleTime(PIDSampleTime);
@@ -161,9 +160,9 @@ void loop() {
       int idx4 = paramStr.indexOf(',', idx3+1);
       int idx5 = paramStr.indexOf(',', idx4+1);
       if (idx1 > 0 && idx2 > idx1 && idx3 > idx2 && idx4 > idx3 && idx5 > idx4) {
-        Kp_inhibit = paramStr.substring(0, idx1).toFloat();
-        Ki_inhibit = paramStr.substring(idx1+1, idx2).toFloat();
-        Kd_inhibit = paramStr.substring(idx2+1, idx3).toFloat();
+        Kp_inhibit   = paramStr.substring(0, idx1).toFloat();
+        Ki_inhibit   = paramStr.substring(idx1+1, idx2).toFloat();
+        Kd_inhibit   = paramStr.substring(idx2+1, idx3).toFloat();
         Kp_excite  = paramStr.substring(idx3+1, idx4).toFloat();
         Ki_excite  = paramStr.substring(idx4+1, idx5).toFloat();
         Kd_excite  = paramStr.substring(idx5+1).toFloat();
@@ -250,16 +249,23 @@ void loop() {
     // Control state: run the PIDs, update target, and output control signals
     case Control:
       // Update target (baseline) every 60 seconds
-      if (target == 0) {
-        target = input; // First time: set baseline to current input
+      if (baseline == 0) {
+        baseline = input; // First time: set baseline to current input
       }
       if (nBaselineWindow >= 59) {
-        target = BaselineSumInWindow / nBaselineWindow;
+        baseline = BaselineSumInWindow / nBaselineWindow;
         BaselineSumInWindow = 0;
         nBaselineWindow = 0;
       }
       
       // Compute both PIDs
+      if (normalizePIDInput){
+        input = input / baseline;
+        target = 1;
+      } else{
+        input = input;
+        target = baseline;
+      }
       myPID_inhibit.Compute();
       myPID_excite.Compute();
 
@@ -276,14 +282,14 @@ void loop() {
       // Serial.println(target);
 
       // Print error signal (used for online tuning)
-      double errorSignal = (target - input); // / (target + epsilon)
+      double errorSignal = (target - input);
       double squaredError = errorSignal * errorSignal;
       Serial.println(squaredError);
 
       //Serial.print("Error: ");
       //Serial.println((target - input) * Kp_inhibit);
       //Serial.print("dInput: ");
-      //Serial.println((input - lastInput)*Kd);
+      //Serial.println((input - lastInput)*Kd_inhibit / 255);
       // lastInput = input;
       // Serial.print("Output: ");
       // Serial.println(output/255);

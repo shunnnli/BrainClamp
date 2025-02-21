@@ -46,6 +46,16 @@ params_df = pd.read_sql_query("SELECT * FROM trial_params", conn)
 print("\nTrial Parameters (first few rows):")
 print(params_df.head())
 
+# Read the trial values (loss) if available
+try:
+    values_df = pd.read_sql_query("SELECT * FROM trial_values", conn)
+    print("\nTrial Values (first few rows):")
+    print(values_df.head())
+    # Merge the values with the trials dataframe
+    trials_df = pd.merge(trials_df, values_df, on="trial_id", how="left")
+except pd.io.sql.DatabaseError:
+    print("\nNo trial values found in the database.")
+
 # Close the connection once data is read
 conn.close()
 

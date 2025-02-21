@@ -43,7 +43,7 @@ NormalizeMethod normalizeMethod = ZSCORE;
 // -----------------------
 // Initialize arrays for moving statistics
 // -----------------------
-DataTomeAnalysis<int, unsigned long> baselineWindow(600);
+DataTomeAnalysis<int, unsigned long> baselineWindow(60);
 
 // -----------------------
 // PID Variables
@@ -56,7 +56,7 @@ double control_inhibit;    // Final control value for inhibition laser
 double control_excite;   // Final control value for excitation laser
 
 // Default PID parameters for inhibition (reverse action) & excitation (direct)
-double Kp_inhibit = 10, Ki_inhibit = 0, Kd_inhibit = 50;
+double Kp_inhibit = 0, Ki_inhibit = 0, Kd_inhibit = 50;
 double Kp_excite = 10, Ki_excite = 15, Kd_excite = 100;
 double minPIDOutput = 0;
 double maxPIDOutput = 255;
@@ -270,8 +270,8 @@ void loop() {
         case STD:
           // Normalized by std
           baseline_std = baselineWindow.std();
-          input = signal / baseline_std;
-          target = baseline / baseline_std;
+          input = (baseline_std > 0) ? (signal / baseline_std) : baseline;
+          target = (baseline_std > 0) ? (baseline / baseline_std) : baseline;
           break;
       }
 
@@ -292,10 +292,10 @@ void loop() {
       double squaredError = errorSignal * errorSignal;
       Serial.print("zscore: ");
       Serial.println(zscore);
-      Serial.print("baseline: ");
-      Serial.println(baseline);
-      Serial.print("baseline std: ");
-      Serial.println(baseline_std);
+      Serial.print("error: ");
+      Serial.println(errorSignal);
+      Serial.print("output: ");
+      Serial.println(output_inhibit);
       //Serial.println((input - lastInput)*Kd_inhibit / 255);
       
       state = Photometry; // Return to photometry for next sample

@@ -16,8 +16,8 @@ bool startAutomatic = true;     // Set to true for AUTOMATIC startup, false for 
 // -----------------------
 // Photometry & Baseline Params
 // -----------------------
-double PhotometryWindow = 5; // in ms
-double PIDSampleTime = 0;    // in ms
+double PhotometryWindow = 30; // in ms
+double PIDSampleTime = 1;    // in ms
 double PhotometrySum = 0;
 double rawSignal = 0;
 double signal = 0;
@@ -42,8 +42,11 @@ NormalizeMethod normalizeMethod = ZSCORE;
 
 // -----------------------
 // Initialize arrays for moving statistics
+// (Assume 3s baseline sample)
+// (20 -> 60s)
+// (60 -> 180s)
 // -----------------------
-DataTomeAnalysis<int, unsigned long> baselineWindow(60);
+DataTomeAnalysis<int, unsigned long> baselineWindow(20);
 
 // -----------------------
 // PID Variables
@@ -56,7 +59,7 @@ double control_inhibit;    // Final control value for inhibition laser
 double control_excite;   // Final control value for excitation laser
 
 // Default PID parameters for inhibition (reverse action) & excitation (direct)
-double Kp_inhibit = 0, Ki_inhibit = 0, Kd_inhibit = 50;
+double Kp_inhibit = 0, Ki_inhibit = 0, Kd_inhibit = 5;
 double Kp_excite = 10, Ki_excite = 15, Kd_excite = 100;
 double minPIDOutput = 0;
 double maxPIDOutput = 255;
@@ -209,7 +212,7 @@ void loop() {
     // Photometry state: process sensor data & calculate moving average and baseline
     case Photometry:
       rawSignal = analogRead(InputPin);
-
+      // Serial.println(millis() - Start);
       if (millis() - Start >= PhotometryWindow) {
         PhotometrySum += rawSignal;
 
@@ -220,12 +223,12 @@ void loop() {
         state = Control;
         nSample = 1;
 
-        // Accumulate data of baseline sample (100ms)
+        // Accumulate data of baseline sample (3s)
         BaselineSumInWindow += signal;
         nBaselineSample++;
         
         // Add each 100ms baseline sample to baselineWindow buffer
-        if (nBaselineSample >= (100 / PhotometryWindow)) {
+        if (nBaselineSample >= (3000 / PhotometryWindow)) {
           BaselineAvgInWindow = BaselineSumInWindow / nBaselineSample;
           baselineWindow.push(BaselineAvgInWindow);
           nBaselineSample = 0;
@@ -290,12 +293,13 @@ void loop() {
       // Print error signal (used for online tuning)
       double errorSignal = (target - input);
       double squaredError = errorSignal * errorSignal;
-      Serial.print("zscore: ");
-      Serial.println(zscore);
-      Serial.print("error: ");
-      Serial.println(errorSignal);
-      Serial.print("output: ");
-      Serial.println(output_inhibit);
+      Serial.println(squaredError);
+      // Serial.print("zscore: ");
+      // Serial.println(zscore);
+      // Serial.print("baseline std: ");
+      // Serial.println(baseline_std);
+      // Serial.print("output: ");
+      // Serial.println(output_inhibit);
       //Serial.println((input - lastInput)*Kd_inhibit / 255);
       
       state = Photometry; // Return to photometry for next sample

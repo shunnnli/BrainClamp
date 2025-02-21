@@ -17,16 +17,21 @@ studies_df = pd.read_sql_query("SELECT * FROM studies", conn)
 print("Studies in DB:")
 print(studies_df)
 
-# Ask user to select a study
-animal_name = input("Select study animal: ")
-# Give user a indexed list of studies to choose from based on the animal name
-print(f"Available studies for {animal_name}:")
-for i, study_name in enumerate(studies_df[studies_df['animal_name'] == animal_name]['study_name']):
-    print(f"{i + 1}. {study_name}")
-study_idx = int(input("Enter the index of the study you want to analyze: ")) - 1
-study_name = studies_df[studies_df['animal_name'] == animal_name]['study_name'].iloc[study_idx]
-study_id = studies_df[studies_df['study_name'] == study_name]['study_id'].iloc[0]
+# Ask user to select a study by entering study_id
+study_id = int(input("Enter study_id to analyze: "))
+study_name = studies_df[studies_df['study_id'] == study_id]['study_name'].iloc[0]
 print(f"\nSelected study: {study_name}")
+
+# Ask user to select a study based on animal name
+# animal_name = input("Select study animal: ")
+# Give user a indexed list of studies to choose from based on the animal name
+# print(f"Available studies for {animal_name}:")
+# for i, study_name in enumerate(studies_df[studies_df['animal_name'] == animal_name]['study_name']):
+#     print(f"{i + 1}. {study_name}")
+# study_idx = int(input("Enter the index of the study you want to analyze: ")) - 1
+# study_name = studies_df[studies_df['animal_name'] == animal_name]['study_name'].iloc[study_idx]
+# study_id = studies_df[studies_df['study_name'] == study_name]['study_id'].iloc[0]
+# print(f"\nSelected study: {study_name}")
 
 # ---------------------------
 # 2. Extract Data from Trials and Trial Params
@@ -91,5 +96,5 @@ plt.tight_layout()
 plt.show()
 
 # Save the figure with study name in results folder
-fig.savefig(f"Results/{study_id}_optuna.png")
+fig.savefig(f"Results/{study_name}_optuna.png")
 print(f"Finished: optimization summary saved in Results folder.")

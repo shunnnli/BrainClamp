@@ -94,7 +94,7 @@ for i, param in enumerate(pid_params):
         # Plot the loss on the right axes
         if "value" in merged_df.columns:
             ax2 = axes[i].twinx()
-            ax2.plot(merged_df[x_col], merged_df["value"], color="red", linestyle="--")
+            ax2.plot(merged_df[x_col], merged_df["value"], color="red", linestyle="-")
             ax2.set_ylabel("Loss (MSE)", color="red")
             ax2.tick_params(axis="y", labelcolor="red")
         axes[i].set_ylabel(param)

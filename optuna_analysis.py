@@ -2,6 +2,7 @@ import sqlite3
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import os
 
 # Set up display style
 # sns.set(style="whitegrid")
@@ -21,6 +22,9 @@ print(studies_df)
 study_id = int(input("Enter study_id to analyze: "))
 study_name = studies_df[studies_df['study_id'] == study_id]['study_name'].iloc[0]
 print(f"\nSelected study: {study_name}")
+
+results_folder = f"Results/{study_name}"
+os.makedirs(results_folder, exist_ok=True)
 
 # Ask user to select a study based on animal name
 # animal_name = input("Select study animal: ")
@@ -81,30 +85,61 @@ merged_df.reset_index(drop=True, inplace=True)
 print("\nMerged Trial Data (first few rows):")
 print(merged_df.head())
 
+# Save the merged data to a CSV file
+merged_csv_path = os.path.join(results_folder, f"{study_name}_merged_data.csv")
+merged_df.to_csv(merged_csv_path, index=False)
+
+
 # ---------------------------
 # 4. Visualize Loss and Parameter Changes
 # ---------------------------
 
 pid_params = ["Kp_inhib", "Ki_inhib", "Kd_inhib", "Kp_excite", "Ki_excite", "Kd_excite"]
 n_params = len(pid_params)
+
+# Get the best params from the merged_df
+best_params = merged_df.loc[merged_df["value"].idxmin(), pid_params]
+best_idx = merged_df["number"].loc[merged_df["value"].idxmin()]
+
+# Plot param evolution for each PID parameter
 fig, axes = plt.subplots(n_params, 1, figsize=(10, 2 * n_params), sharex=True)
 for i, param in enumerate(pid_params):
     if param in merged_df.columns:
         axes[i].plot(merged_df[x_col], merged_df[param], marker="o", linestyle="-")
         # Plot the loss on the right axes
-        if "value" in merged_df.columns:
-            ax2 = axes[i].twinx()
-            ax2.plot(merged_df[x_col], merged_df["value"], color="red", linestyle="-")
-            ax2.set_ylabel("Loss (MSE)", color="red")
-            ax2.tick_params(axis="y", labelcolor="red")
+        ax2 = axes[i].twinx()
+        ax2.plot(merged_df[x_col], merged_df["value"], color="orange", linestyle="-")
+        ax2.set_ylabel("Loss (MSE)", color="orange")
+        ax2.tick_params(axis="y", labelcolor="orange")
         axes[i].set_ylabel(param)
         axes[i].set_title(f"Evolution of {param}")
+        # Highlight the best value
+        best_value = best_params[param]
+        axes[i].plot(best_idx, best_value, marker="*", markersize=10, color="red")
     else:
         axes[i].text(0.5, 0.5, f"No data for {param}", horizontalalignment="center", verticalalignment="center")
 axes[-1].set_xlabel("Trial Number")
 plt.tight_layout()
-plt.show()
-
+plt.show(block=False)
 # Save the figure with study name in results folder
-fig.savefig(f"Results/{study_name}_optuna.png")
+fig.savefig(os.path.join(results_folder, "optuna_param_evolution.png"))
+
+# Plot param vs loss for each PID parameter
+fig, axes = plt.subplots(int(n_params/2), 2, figsize=(10, 2 * n_params))
+for i, param in enumerate(pid_params):
+    if param in merged_df.columns:
+        sns.scatterplot(data=merged_df, x=param, y="value", ax=axes[i//2, i%2])
+        axes[i//2, i%2].set_title(f"{param} vs Loss")
+        axes[i//2, i%2].set_xlabel(param)
+        axes[i//2, i%2].set_ylabel("Loss (MSE)")
+        # Highlight the best value
+        best_value = best_params[param]
+        axes[i//2, i%2].plot(best_value, merged_df["value"].min(), marker="*", markersize=10, color="red")
+    else:
+        axes[i//2, i%2].text(0.5, 0.5, f"No data for {param}", horizontalalignment="center", verticalalignment="center")
+plt.tight_layout()
+plt.show(block=False)
+# Save the figure with study name in results folder
+fig.savefig(os.path.join(results_folder, "optuna_param_vs_loss.png"))
+
 print(f"Finished: optimization summary saved in Results folder.")

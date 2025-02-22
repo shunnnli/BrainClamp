@@ -6,6 +6,8 @@
 #include <DataTome.h>
 #include <DataTomeAnalysis.h>
 #include <math.h>
+#include <Wire.h>
+#include <Adafruit_MCP4725.h>
 
 // -----------------------
 // Global Flags & Modes
@@ -73,10 +75,13 @@ PID myPID_excite(&input, &output_excite, &target, Kp_excite, Ki_excite, Kd_excit
 // -----------------------
 // Pin Definitions
 // -----------------------
-const byte InputPin = A0;
+const byte InputPin = A1;
 const byte OutputPin_inhibit = 7;   // Inhibition laser pin
 const byte OutputPin_excite = 12;   // Excitation laser pin
 const byte TargetPin = 3;          // (Unused in this version)
+
+// Create an MCP4725 DAC object
+Adafruit_MCP4725 dac;
 
 // -----------------------
 // Timing & State Variables
@@ -93,10 +98,16 @@ unsigned long lastInput = 0;
 // -----------------------
 void setup() {
   Serial.begin(115200);
+
   pinMode(InputPin, INPUT);
   pinMode(OutputPin_inhibit, OUTPUT);
   pinMode(OutputPin_excite, OUTPUT);
   pinMode(TargetPin, INPUT);
+
+  pinMode(A2, OUTPUT);
+  pinMode(A3, OUTPUT);
+  digitalWrite(A2, LOW);//Set A2 as GND
+  digitalWrite(A3, HIGH);//Set A3 as Vcc
 
   // Initial sensor read & baseline setup
   rawSignal = analogRead(InputPin);
@@ -123,6 +134,12 @@ void setup() {
   Serial.println("---------------------PhotometryClamp---------------------");
   Serial.println("Toggles: online tuning: 't'");
   Serial.println("Command: start clamping: 8  | Stop clamping: 9");
+  // Initialize the MCP4725. If initialization fails, halt the program.
+  if (!dac.begin(0x60)) {
+    Serial.println("Failed to initialize MCP4725 DAC!");
+    while (1);
+  }
+  Serial.println("MCP4725 DAC initialized.");
   Serial.println("---------------------------------------------------------");
 }
 
@@ -213,6 +230,7 @@ void loop() {
     case Photometry:
       rawSignal = analogRead(InputPin);
       // Serial.println(millis() - Start);
+
       if (millis() - Start >= PhotometryWindow) {
         PhotometrySum += rawSignal;
 
@@ -301,6 +319,10 @@ void loop() {
       // Serial.print("output: ");
       // Serial.println(output_inhibit);
       //Serial.println((input - lastInput)*Kd_inhibit / 255);
+
+      // Send control output to DAC
+      int scaled_controlInhibit = map(output_inhibit, 0, 255, 0, 4095);
+      dac.setVoltage(scaled_controlInhibit, false);  // false: wait for the write to finish
       
       state = Photometry; // Return to photometry for next sample
       break;

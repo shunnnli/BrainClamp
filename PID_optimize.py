@@ -25,13 +25,13 @@ def objective(trial):
     """
     print(f"\n========= Starting trial {trial.number} =========")
     # Suggest PID parameters for inhibition (REVERSE) and excitation (DIRECT)
-    kp_inhib = trial.suggest_float("Kp_inhib", 1, 50, log=True)
+    kp_inhib = trial.suggest_float("Kp_inhib", 1, 20, log=True)
     ki_inhib = trial.suggest_float("Ki_inhib", 1, 20, log=True)
     kd_inhib = trial.suggest_float("Kd_inhib", 50, 200, log=True)
 
     # For excitation, always suggest, but if bidirectional is False, fix them to 0
     if bidirectional:
-        kp_excite = trial.suggest_float("Kp_excite", 1, 50, log=True)
+        kp_excite = trial.suggest_float("Kp_excite", 1, 20, log=True)
         ki_excite = trial.suggest_float("Ki_excite", 1, 20, log=True)
         kd_excite = trial.suggest_float("Kd_excite", 50, 200, log=True)
     else:
@@ -143,11 +143,11 @@ if __name__ == '__main__':
 
     # Save the study results to a CSV file
     df = study.trials_dataframe()
-    results_folder = "Optuna results"
+    results_folder = f"Results/{study_name}"
     os.makedirs(results_folder, exist_ok=True)
-    csv_path = os.path.join(results_folder, f"{study_name}.csv")
+    csv_path = os.path.join(results_folder, "optuna_df.csv")
     df.to_csv(csv_path, index=False)
-    print(f"Study results saved to {study_name}.csv")
+    print(f"Study results saved to Results/{study_name}")
     
     # Close the serial connection
     ser.close()

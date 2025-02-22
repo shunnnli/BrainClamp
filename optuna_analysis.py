@@ -86,7 +86,7 @@ print("\nMerged Trial Data (first few rows):")
 print(merged_df.head())
 
 # Save the merged data to a CSV file
-merged_csv_path = os.path.join(results_folder, f"{study_name}_merged_data.csv")
+merged_csv_path = os.path.join(results_folder, "merged_df.csv")
 merged_df.to_csv(merged_csv_path, index=False)
 
 

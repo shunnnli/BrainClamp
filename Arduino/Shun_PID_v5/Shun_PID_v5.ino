@@ -57,7 +57,7 @@ NormalizeMethod normalizeMethod = ZSCORE;
 // (20 -> 60s)
 // (60 -> 180s)
 // -----------------------
-DataTomeAnalysis<int, unsigned long> baselineWindow(20);
+DataTomeAnalysis<double, double> baselineWindow(20);
 
 // -----------------------
 // PID Variables
@@ -245,7 +245,7 @@ void loop() {
       
       // Add each 100ms baseline sample to baselineWindow buffer
       if (millis() - Start >= 3000) {
-        BaselineAvgInWindow = BaselineSumInWindow / nBaselineSample;
+        BaselineAvgInWindow = BaselineSumInWindow / (double)nBaselineSample;
         baselineWindow.push(BaselineAvgInWindow);
         nBaselineSample = 0;
         BaselineSumInWindow = 0;

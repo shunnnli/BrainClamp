@@ -27,7 +27,7 @@ def objective(trial):
     # Suggest PID parameters for inhibition (REVERSE) and excitation (DIRECT)
     kp_inhib = trial.suggest_float("Kp_inhib", 1, 20, log=True)
     ki_inhib = trial.suggest_float("Ki_inhib", 1, 20, log=True)
-    kd_inhib = trial.suggest_float("Kd_inhib", 50, 200, log=True)
+    kd_inhib = trial.suggest_float("Kd_inhib", 20, 200, log=True)
 
     # For excitation, always suggest, but if bidirectional is False, fix them to 0
     if bidirectional:
@@ -119,6 +119,9 @@ if __name__ == '__main__':
                                  study_name=study_name,
                                  storage='sqlite:///pid_optimize.db',
                                  load_if_exists=True)
+
+    print("Optuna studied initialized. Wait 60s for baseline window.")
+    time.sleep(45)  # Wait for the the baseline window to initialize
     
     # Print progress update for each trial
     study.optimize(objective, n_trials=100, callbacks=[trial_callback], show_progress_bar=True)

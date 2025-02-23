@@ -17,9 +17,18 @@ bool startAutomatic = true;     // Set to true for AUTOMATIC startup, false for 
 
 // -----------------------
 // Photometry & Baseline Params
+// 
 // -----------------------
-double PhotometryWindow = 30; // in ms
-double PIDSampleTime = 1;    // in ms
+// For moving average
+constexpr double PhotometryWindow = 30; // in ms
+constexpr double ArduinoFrequency = 8563; // Arduino sampling frequency
+constexpr int windowSize = (int)(ArduinoFrequency * (PhotometryWindow / 1000.0));
+int sampleBuffer[windowSize];
+int index = 0;
+unsigned long runningSum = 0;
+int sampleCount = 0; 
+
+// For binned average
 double PhotometrySum = 0;
 double rawSignal = 0;
 double signal = 0;
@@ -65,6 +74,7 @@ double Kp_inhibit = 0, Ki_inhibit = 0, Kd_inhibit = 5;
 double Kp_excite = 10, Ki_excite = 15, Kd_excite = 100;
 double minPIDOutput = 0;
 double maxPIDOutput = 255;
+double PIDSampleTime = 1;    // in ms
 
 // -----------------------
 // PID Setup (using PID_v1 library)
@@ -228,33 +238,22 @@ void loop() {
 
     // Photometry state: process sensor data & calculate moving average and baseline
     case Photometry:
+      // Calculate moving average of photometry
       rawSignal = analogRead(InputPin);
-      // Serial.println(millis() - Start);
-
-      if (millis() - Start >= PhotometryWindow) {
-        PhotometrySum += rawSignal;
-
-        // Compute binned average from nSample readings
-        signal = PhotometrySum / nSample;
-        PhotometrySum = 0;
+      signal = updateMovingAverage(rawSignal);
+      state = Control;
+      
+      // Add each 100ms baseline sample to baselineWindow buffer
+      if (millis() - Start >= 3000) {
+        BaselineAvgInWindow = BaselineSumInWindow / nBaselineSample;
+        baselineWindow.push(BaselineAvgInWindow);
+        nBaselineSample = 0;
+        BaselineSumInWindow = 0;
         Start = millis();
-        state = Control;
-        nSample = 1;
-
+      } else{
         // Accumulate data of baseline sample (3s)
         BaselineSumInWindow += signal;
         nBaselineSample++;
-        
-        // Add each 100ms baseline sample to baselineWindow buffer
-        if (nBaselineSample >= (3000 / PhotometryWindow)) {
-          BaselineAvgInWindow = BaselineSumInWindow / nBaselineSample;
-          baselineWindow.push(BaselineAvgInWindow);
-          nBaselineSample = 0;
-          BaselineSumInWindow = 0;
-        }
-      } else {
-        PhotometrySum += rawSignal;
-        nSample++;
       }
       break;
 
@@ -327,4 +326,27 @@ void loop() {
       state = Photometry; // Return to photometry for next sample
       break;
   }
+}
+
+// -----------------------
+// Moving average methods
+// Function to update the moving average with a new sample
+// Returns the current moving average
+// -----------------------
+double updateMovingAverage(double newSample) {
+  // Subtract the oldest sample from the running sum
+  runningSum -= sampleBuffer[index];
+
+  // Insert the new sample into the buffer and add it to the running sum
+  sampleBuffer[index] = newSample;
+  runningSum += newSample;
+
+  // Move to the next index (wrap around using modulo)
+  index = (index + 1) % windowSize;
+  
+  // Keep track of the number of samples (only until the buffer is full)
+  if (sampleCount < windowSize) sampleCount++;
+  
+  // Return the average
+  return runningSum / (double) sampleCount;
 }

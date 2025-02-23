@@ -106,7 +106,7 @@ if __name__ == '__main__':
     animal_name = input("Enter the animal name: ")
     study_name = f"PID_{animal_name}_{time.strftime('%Y%m%d')}"
 
-    user_input = input("Does animal contain excitatory & inhibitory opsin? (y/n): ").strip().lower()
+    user_input = input("Does animal contain excitatory AND inhibitory opsin? (y/n): ").strip().lower()
     if user_input in ['y', 'yes']:
         bidirectional = True
     elif user_input in ['n', 'no']:

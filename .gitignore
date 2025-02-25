@@ -7,6 +7,9 @@ __pycache__/
 *.mat
 *.asv
 
+# System file
+*.DS_Store
+
 # C extensions
 *.so
 

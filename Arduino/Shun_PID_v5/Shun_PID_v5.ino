@@ -31,10 +31,10 @@ int sampleCount = 0;
 // For binned average
 double PhotometrySum = 0;
 double rawSignal = 0;
-double signal = 0;
+double processedSignal = 0;
 
 unsigned long BaselineSumInWindow = 0;
-unsigned long nBaselineSample = 0;
+unsigned long nBaselineSample = 1;
 double BaselineAvgInWindow;
 double baseline;
 double baseline_std;
@@ -62,7 +62,7 @@ DataTomeAnalysis<double, double> baselineWindow(20);
 // -----------------------
 // PID Variables
 // -----------------------
-double input;            // Filtered dopamine signal (after moving average)
+double input;            // Filtered dopamine processedSignal (after moving average)
 double target = 0;           // Desired dopamine level (might be normalized)
 double output_inhibit;     // PID output for inhibition (controls inhibition laser)
 double output_excite;    // PID output for excitation (controls excitation laser)
@@ -70,7 +70,7 @@ double control_inhibit;    // Final control value for inhibition laser
 double control_excite;   // Final control value for excitation laser
 
 // Default PID parameters for inhibition (reverse action) & excitation (direct)
-double Kp_inhibit = 0, Ki_inhibit = 0, Kd_inhibit = 5;
+double Kp_inhibit = 9, Ki_inhibit = 8.6, Kd_inhibit = 55;
 double Kp_excite = 10, Ki_excite = 15, Kd_excite = 100;
 double minPIDOutput = 0;
 double maxPIDOutput = 255;
@@ -86,9 +86,10 @@ PID myPID_excite(&input, &output_excite, &target, Kp_excite, Ki_excite, Kd_excit
 // Pin Definitions
 // -----------------------
 const byte InputPin = A1;
-const byte OutputPin_inhibit = 7;   // Inhibition laser pin
-const byte OutputPin_excite = 12;   // Excitation laser pin
-const byte TargetPin = 3;          // (Unused in this version)
+const byte ControlPin_inhibit = 7;   // Inhibition laser pin
+const byte ControlPin_excite = 12;   // Excitation laser pin
+const byte TargetPin = 3;           // (Unused in this version)
+const byte OutputPin_inhibit = A0;
 
 // Create an MCP4725 DAC object
 Adafruit_MCP4725 dac;
@@ -110,9 +111,10 @@ void setup() {
   Serial.begin(115200);
 
   pinMode(InputPin, INPUT);
-  pinMode(OutputPin_inhibit, OUTPUT);
-  pinMode(OutputPin_excite, OUTPUT);
+  pinMode(ControlPin_inhibit, OUTPUT);
+  pinMode(ControlPin_excite, OUTPUT);
   pinMode(TargetPin, INPUT);
+  pinMode(OutputPin_inhibit, OUTPUT);
 
   pinMode(A2, OUTPUT);
   pinMode(A3, OUTPUT);
@@ -141,15 +143,19 @@ void setup() {
   myPID_inhibit.SetSampleTime(PIDSampleTime);
   myPID_excite.SetSampleTime(PIDSampleTime);
 
+  // Wait for the serial connection to be established
+  while (!Serial) {;}
+  // Serial.println("Serial is ready!");
+
   Serial.println("---------------------PhotometryClamp---------------------");
   Serial.println("Toggles: online tuning: 't'");
   Serial.println("Command: start clamping: 8  | Stop clamping: 9");
   // Initialize the MCP4725. If initialization fails, halt the program.
   if (!dac.begin(0x60)) {
     Serial.println("Failed to initialize MCP4725 DAC!");
-    while (1);
+  } else{
+    Serial.println("MCP4725 DAC initialized.");
   }
-  Serial.println("MCP4725 DAC initialized.");
   Serial.println("---------------------------------------------------------");
 }
 
@@ -219,8 +225,8 @@ void loop() {
         myPID_excite.SetMode(MANUAL);
         Serial.println("Received 9: PIDs set to MANUAL");
         state = Idle;
-        digitalWrite(OutputPin_inhibit, HIGH);
-        digitalWrite(OutputPin_excite, HIGH);
+        digitalWrite(ControlPin_inhibit, HIGH);
+        digitalWrite(ControlPin_excite, HIGH);
         End = millis();
         Start = 0;
       }
@@ -240,58 +246,76 @@ void loop() {
     case Photometry:
       // Calculate moving average of photometry
       rawSignal = analogRead(InputPin);
-      signal = updateMovingAverage(rawSignal);
+      processedSignal = updateMovingAverage(rawSignal);
       state = Control;
       
-      // Add each 100ms baseline sample to baselineWindow buffer
+      // Add baseline sample to baselineWindow buffer
       if (millis() - Start >= 3000) {
         BaselineAvgInWindow = BaselineSumInWindow / (double)nBaselineSample;
         baselineWindow.push(BaselineAvgInWindow);
+        // Serial.println(BaselineAvgInWindow);
         nBaselineSample = 0;
         BaselineSumInWindow = 0;
         Start = millis();
+        
       } else{
         // Accumulate data of baseline sample (3s)
-        BaselineSumInWindow += signal;
+        BaselineSumInWindow += processedSignal;
         nBaselineSample++;
       }
       break;
 
     // Control state: run the PIDs, update target, and output control signals
     case Control:
-      // Get baseline
-      if (baselineWindow.count() == 0){
-        baseline = signal;
-      } else{
-        baseline = baselineWindow.median();
-      }
-      
       // Determine input & output
       switch (normalizeMethod) {
         case RAW:
-          input = signal;
-          target = baseline;
+          if (baselineWindow.count() <= 1){
+            input = processedSignal;
+            target = processedSignal;
+          } else{
+            input = processedSignal;
+            target = baselineWindow.median();
+          }
           break;
 
         case BASELINE:
           // Normalize by baseline: typically, you want baseline to become 1.
-          input = signal / baseline;
-          target = 1;
+          if (baselineWindow.count() <= 1){
+            input = 1;
+            target = 1;
+          } else{
+            baseline = baselineWindow.median();
+            input = processedSignal / baseline;
+            target = 1;
+          }
           break;   
 
         case ZSCORE:
           // Calculate zscore for current input
-          baseline_std = baselineWindow.std();
-          zscore = (baseline_std > 0) ? ((signal - baseline) / baseline_std) : 0;
-          input = zscore;
-          target = 0;
+          if (baselineWindow.count() <= 1){
+            input = 0;
+            target = 0;
+          } else{
+            baseline = baselineWindow.median();
+            baseline_std = baselineWindow.std();
+            zscore = (baseline_std > 0) ? ((processedSignal - baseline) / baseline_std) : 0;
+            input = zscore;
+            target = 0;
+          }
           break;
 
         case STD:
           // Normalized by std
-          baseline_std = baselineWindow.std();
-          input = (baseline_std > 0) ? (signal / baseline_std) : baseline;
-          target = (baseline_std > 0) ? (baseline / baseline_std) : baseline;
+          if (baselineWindow.count() <= 1){
+            input = processedSignal;
+            target = processedSignal;
+          } else{
+            baseline = baselineWindow.median();
+            baseline_std = baselineWindow.std();
+            input = (baseline_std > 0) ? (processedSignal / baseline_std) : baseline;
+            target = (baseline_std > 0) ? (baseline / baseline_std) : baseline;
+          }
           break;
       }
 
@@ -304,8 +328,8 @@ void loop() {
       control_excite = 255 - output_excite;
 
       // Write outputs to respective pins
-      analogWrite(OutputPin_inhibit, (int)control_inhibit);
-      analogWrite(OutputPin_excite, (int)control_excite);
+      analogWrite(ControlPin_inhibit, (int)control_inhibit);
+      analogWrite(ControlPin_excite, (int)control_excite);
 
       // Print error signal (used for online tuning)
       double errorSignal = (target - input);
@@ -314,15 +338,16 @@ void loop() {
       // Serial.print("zscore: ");
       // Serial.println(zscore);
       // Serial.print("baseline std: ");
-      // Serial.println(baseline_std);
+      // Serial.println(baselineWindow.std());
       // Serial.print("output: ");
       // Serial.println(output_inhibit);
-      //Serial.println((input - lastInput)*Kd_inhibit / 255);
+      // Serial.println((input - lastInput)*Kd_inhibit / 255);
 
       // Send control output to DAC
-      int scaled_controlInhibit = map(output_inhibit, 0, 255, 0, 4095);
-      dac.setVoltage(scaled_controlInhibit, false);  // false: wait for the write to finish
-      
+      int scaled_OutputInhibit = map(output_inhibit, 0, 255, 0, 4095);
+      dac.setVoltage(scaled_OutputInhibit, false);  // false: wait for the write to finish
+      // analogWrite(OutputPin_inhibit, output_inhibit);
+
       state = Photometry; // Return to photometry for next sample
       break;
   }

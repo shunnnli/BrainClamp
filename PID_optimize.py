@@ -33,7 +33,7 @@ def objective(trial):
     if bidirectional:
         kp_excite = trial.suggest_float("Kp_excite", 1, 20, log=True)
         ki_excite = trial.suggest_float("Ki_excite", 1, 20, log=True)
-        kd_excite = trial.suggest_float("Kd_excite", 50, 200, log=True)
+        kd_excite = trial.suggest_float("Kd_excite", 20, 200, log=True)
     else:
         # Use a degenerate search space to fix the values at 1
         kp_excite = trial.suggest_float("Kp_excite", 1, 1, log=True)
@@ -48,6 +48,7 @@ def objective(trial):
     try:
         ser.write(cmd.encode())
         ser.flush()  # Ensure data is sent immediately
+        print("Command string sent to Arduino.")
     except Exception as e:
         print("Error sending parameters:", e)
         return float('inf')
@@ -117,11 +118,11 @@ if __name__ == '__main__':
     
     study = optuna.create_study(direction='minimize',
                                  study_name=study_name,
-                                 storage='sqlite:///pid_optimize.db',
+                                 storage='sqlite:///optuna_optimization.db',
                                  load_if_exists=True)
 
     print("Optuna studied initialized. Wait 60s for baseline window.")
-    time.sleep(45)  # Wait for the the baseline window to initialize
+    # time.sleep(60)  # Wait for the the baseline window to initialize
     
     # Print progress update for each trial
     study.optimize(objective, n_trials=100, callbacks=[trial_callback], show_progress_bar=True)

@@ -12,8 +12,8 @@
 // -----------------------
 // Global Flags & Modes
 // -----------------------
-bool onlineTuningMode = true;   // false = offline mode; true = online tuning mode
-bool startAutomatic = true;     // Set to true for AUTOMATIC startup, false for MANUAL (requires pressing '8')
+bool onlineTuningMode = false;   // false = offline mode; true = online tuning mode
+bool startAutomatic = false;     // Set to true for AUTOMATIC startup, false for MANUAL (requires pressing '8')
 
 // -----------------------
 // Photometry & Baseline Params
@@ -157,6 +157,15 @@ void setup() {
     Serial.println("MCP4725 DAC initialized.");
   }
   Serial.println("---------------------------------------------------------");
+  Serial.println("Current PID values");
+  Serial.print("Inhib: Kp=");
+  Serial.print(Kp_inhibit); Serial.print(" Ki=");
+  Serial.print(Ki_inhibit); Serial.print(" Kd=");
+  Serial.println(Kd_inhibit);
+  Serial.print("Excite: Kp=");
+  Serial.print(Kp_excite); Serial.print(" Ki=");
+  Serial.print(Ki_excite); Serial.print(" Kd=");
+  Serial.println(Kd_excite);
 }
 
 // -----------------------

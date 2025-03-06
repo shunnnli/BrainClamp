@@ -8,7 +8,7 @@ import optuna
 # Set up serial connection
 # -----------------------
 try:
-    ser = serial.Serial('COM4', 115200, timeout=1)
+    ser = serial.Serial('COM5', 115200, timeout=1)
     print("Serial connection opened")
 except Exception as e:
     print("Error opening serial port:", e)
@@ -37,15 +37,19 @@ def send_command(cmd):
     except Exception as e:
         print("Error sending command:", e)
 
-# Toggle PID on/off
+# Toggle PID on/off and update the visual indicator
 def toggle_pid():
     global pid_on
     pid_on = not pid_on
     if pid_on:
-        send_command("8\n")  # Assuming "8" turns PID on
-        start_reset_timer()     # Automatically start the 60s reset window
+        send_command("8\n")  # "8" turns PID on
+        print("Command sent: PID ON")
+        start_reset_timer()  # Automatically start the 60s reset window
+        pid_status_label.config(text="PID is ON", bg="green", fg="white")
     else:
-        send_command("9\n")  # Assuming "9" turns PID off
+        send_command("9\n")  # "9" turns PID off
+        print("Command sent: PID OFF")
+        pid_status_label.config(text="PID is OFF", bg="red", fg="white")
 
 # Update PID parameters based on input boxes
 def set_parameters():
@@ -74,11 +78,16 @@ def set_parameters():
     except Exception as e:
         print("Error reading parameters:", e)
 
-# Start a 60-second reset window
+# Start a 60-second reset window: sends a command that sets PID outputs to zero and updates a progress counter.
 def start_reset_timer():
     def reset_sequence():
         send_command("R\n")  # Command the Arduino to force PID outputs to zero for 60s
         print("Baseline reset mode initiated for 60 seconds.")
+        for i in range(60, 0, -1):
+            # Use root.after to update the progress label from the thread
+            root.after(0, progress_label.config, {"text": f"Reset time remaining: {i} s"})
+            time.sleep(1)
+        root.after(0, progress_label.config, {"text": "Reset window finished"})
     threading.Thread(target=reset_sequence, daemon=True).start()
 
 # Toggle online optuna optimization
@@ -88,8 +97,6 @@ def toggle_optimization():
         optuna_running = True
         threading.Thread(target=run_optimization, daemon=True).start()
     else:
-        # Stopping an optimization process cleanly can be complex;
-        # here we simply notify that stopping is not implemented.
         print("Stopping optimization is not implemented in this demo.")
 
 # Update the optimization progress text box (thread-safe)
@@ -142,13 +149,11 @@ def run_optimization():
         update_optimization_progress(trial.number, avg_error)
         return avg_error
 
-    # Run a limited number of trials (e.g. 10 for this demo)
     study.optimize(objective, n_trials=10)
     best_params = study.best_params
     print("Optimization completed!")
     print("Best parameters:", best_params)
     
-    # Update GUI with best parameters from optimization
     def update_gui_best():
         entry_kp_inhib.delete(0, tk.END)
         entry_kp_inhib.insert(0, str(best_params["Kp_inhib"]))
@@ -168,8 +173,8 @@ def run_optimization():
 # Update the display of current PID parameters in the GUI
 def update_current_info():
     info_text = (f"PID Parameters:\n"
-                 f"  Inhibit - Kp: {current_pid.get('Kp_inhib')}, Ki: {current_pid.get('Ki_inhib')}, Kd: {current_pid.get('Kd_inhib')}\n"
-                 f"  Excite  - Kp: {current_pid.get('Kp_excite')}, Ki: {current_pid.get('Ki_excite')}, Kd: {current_pid.get('Kd_excite')}")
+                 f"  Inhibit PID: Kp: {current_pid.get('Kp_inhib')}, Ki: {current_pid.get('Ki_inhib')}, Kd: {current_pid.get('Kd_inhib')}\n"
+                 f"  Excite  PID: Kp: {current_pid.get('Kp_excite')}, Ki: {current_pid.get('Ki_excite')}, Kd: {current_pid.get('Kd_excite')}")
     info_label.config(text=info_text)
 
 # -----------------------
@@ -178,53 +183,59 @@ def update_current_info():
 root = tk.Tk()
 root.title("PID Controller GUI")
 
-# Row 0: Main control buttons
+# Configure grid columns so they expand equally
+for col in range(3):
+    root.grid_columnconfigure(col, weight=1)
+
+# Row 0: Place the three toggle buttons in separate columns to center them
 pid_button = tk.Button(root, text="Toggle PID On/Off", command=toggle_pid)
 pid_button.grid(row=0, column=0, padx=5, pady=5)
-
 reset_button = tk.Button(root, text="60s Reset Window", command=start_reset_timer)
 reset_button.grid(row=0, column=1, padx=5, pady=5)
-
 opt_button = tk.Button(root, text="Toggle Online Optimization", command=toggle_optimization)
 opt_button.grid(row=0, column=2, padx=5, pady=5)
 
-# Rows 1-3: Input fields for PID_inhibit
-tk.Label(root, text="Kp_inhib:").grid(row=1, column=0, padx=5, pady=5)
+# Row 1: PID visual indicator label, spanning all columns
+pid_status_label = tk.Label(root, text="PID is OFF", bg="red", fg="white", font=("Helvetica", 12, "bold"))
+pid_status_label.grid(row=1, column=0, columnspan=3, padx=5, pady=5)
+
+# Row 2: Progress indicator for reset window (counter), spanning all columns
+progress_label = tk.Label(root, text="", font=("Helvetica", 10))
+progress_label.grid(row=2, column=0, columnspan=3, padx=5, pady=5)
+
+# Rows 3-5: Input fields for PID_inhibit
+tk.Label(root, text="Kp_inhib:").grid(row=3, column=0, padx=5, pady=5)
 entry_kp_inhib = tk.Entry(root)
-entry_kp_inhib.grid(row=1, column=1, padx=5, pady=5)
-
-tk.Label(root, text="Ki_inhib:").grid(row=2, column=0, padx=5, pady=5)
+entry_kp_inhib.grid(row=3, column=1, padx=5, pady=5)
+tk.Label(root, text="Ki_inhib:").grid(row=4, column=0, padx=5, pady=5)
 entry_ki_inhib = tk.Entry(root)
-entry_ki_inhib.grid(row=2, column=1, padx=5, pady=5)
-
-tk.Label(root, text="Kd_inhib:").grid(row=3, column=0, padx=5, pady=5)
+entry_ki_inhib.grid(row=4, column=1, padx=5, pady=5)
+tk.Label(root, text="Kd_inhib:").grid(row=5, column=0, padx=5, pady=5)
 entry_kd_inhib = tk.Entry(root)
-entry_kd_inhib.grid(row=3, column=1, padx=5, pady=5)
+entry_kd_inhib.grid(row=5, column=1, padx=5, pady=5)
 
-# Rows 1-3: Input fields for PID_excite
-tk.Label(root, text="Kp_excite:").grid(row=1, column=2, padx=5, pady=5)
+# Rows 3-5: Input fields for PID_excite
+tk.Label(root, text="Kp_excite:").grid(row=3, column=2, padx=5, pady=5)
 entry_kp_excite = tk.Entry(root)
-entry_kp_excite.grid(row=1, column=3, padx=5, pady=5)
-
-tk.Label(root, text="Ki_excite:").grid(row=2, column=2, padx=5, pady=5)
+entry_kp_excite.grid(row=3, column=3, padx=5, pady=5)
+tk.Label(root, text="Ki_excite:").grid(row=4, column=2, padx=5, pady=5)
 entry_ki_excite = tk.Entry(root)
-entry_ki_excite.grid(row=2, column=3, padx=5, pady=5)
-
-tk.Label(root, text="Kd_excite:").grid(row=3, column=2, padx=5, pady=5)
+entry_ki_excite.grid(row=4, column=3, padx=5, pady=5)
+tk.Label(root, text="Kd_excite:").grid(row=5, column=2, padx=5, pady=5)
 entry_kd_excite = tk.Entry(root)
-entry_kd_excite.grid(row=3, column=3, padx=5, pady=5)
+entry_kd_excite.grid(row=5, column=3, padx=5, pady=5)
 
-# Row 4: Button to update PID parameters from the entries
+# Row 6: Button to update PID parameters from the entries, spanning two columns
 set_param_button = tk.Button(root, text="Set PID Parameters", command=set_parameters)
-set_param_button.grid(row=4, column=0, columnspan=2, padx=5, pady=5)
+set_param_button.grid(row=6, column=0, columnspan=2, padx=5, pady=5)
 
-# Row 5: A label to display current PID parameter values
+# Row 7: A label to display current PID parameter values, spanning all columns
 info_label = tk.Label(root, text="PID Parameters: Not Set", justify=tk.LEFT)
-info_label.grid(row=5, column=0, columnspan=4, padx=5, pady=5)
+info_label.grid(row=7, column=0, columnspan=4, padx=5, pady=5)
 
-# Row 6: Text box for displaying optimization progress
+# Row 8: Text box for displaying optimization progress, spanning all columns
 opt_text_box = tk.Text(root, height=10, width=50)
-opt_text_box.grid(row=6, column=0, columnspan=4, padx=5, pady=5)
+opt_text_box.grid(row=8, column=0, columnspan=4, padx=5, pady=5)
 
 # Initialize the entry fields with default values
 entry_kp_inhib.insert(0, "10.0")
@@ -237,7 +248,8 @@ update_current_info()
 
 # Optionally, start with PID turned on and start the reset window automatically.
 pid_on = True
-send_command("P1\n")
+send_command("8\n")
+pid_status_label.config(text="PID is ON", bg="green", fg="white")
 start_reset_timer()
 
 # Run the tkinter main loop
@@ -245,4 +257,3 @@ root.mainloop()
 
 # Close the serial connection when the GUI is closed.
 ser.close()
-print("Serial connection closed")

@@ -15,6 +15,10 @@
 bool onlineTuningMode = true;   // false = offline mode; true = online tuning mode
 bool startAutomatic = true;     // Set to true for AUTOMATIC startup, false for MANUAL (requires pressing '8')
 
+bool baselineResetMode = false;
+unsigned long baselineResetStartTime = 0;
+
+
 // -----------------------
 // Photometry & Baseline Params
 // 
@@ -233,6 +237,12 @@ void loop() {
         Start = 0;
       }
     }
+    // 'R' will stop PID output and refill the baselineWindow values
+    else if (inChar == 'R') {
+      baselineResetMode = true;
+      baselineResetStartTime = millis();
+      Serial.println("Entering baseline reset mode for 60s: PID output forced to zero.");
+    }
   }
   
   // -----------------------
@@ -332,6 +342,16 @@ void loop() {
       }else{
         control_inhibit = 255;
         control_excite = 255;
+      }
+
+      // If in baseline reset mode, force outputs to zero for 60s
+      if (baselineResetMode) {
+        if (millis() - baselineResetStartTime < 60000) {
+          control_inhibit = 255;
+          control_excite = 255;
+        } else {
+          baselineResetMode = false; // Reset the mode after 60 seconds
+        }
       }
       
       // Write outputs to respective pins

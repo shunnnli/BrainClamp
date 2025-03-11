@@ -8,7 +8,7 @@ import optuna
 # Set up serial connection
 # -----------------------
 try:
-    ser = serial.Serial('COM5', 115200, timeout=1)
+    ser = serial.Serial('COM4', 115200, timeout=1)
     print("Serial connection opened")
 except Exception as e:
     print("Error opening serial port:", e)
@@ -52,11 +52,11 @@ def toggle_pid():
     if pid_on:
         send_command("8\n")  # "8" turns PID on
         log_message("Command sent: PID ON")
-        pid_status_label.config(text="PID is ON", bg="green", fg="white")
+        pid_button.config(text="Turn PID Off", bg="red", fg="white")
     else:
         send_command("9\n")  # "9" turns PID off
         log_message("Command sent: PID OFF")
-        pid_status_label.config(text="PID is OFF", bg="red", fg="white")
+        pid_button.config(text="Turn PID On", bg="green", fg="white")
 
 def set_parameters():
     try:
@@ -99,6 +99,24 @@ def start_reset_timer():
         if not cancel_event.is_set():
             root.after(0, progress_label.config, {"text": "Reset window finished"})
     threading.Thread(target=reset_sequence, args=(reset_timer_event,), daemon=True).start()
+
+# -----------------------
+# Continuously read clamp status from Arduino
+# -----------------------
+def read_clamp_status():
+    while True:
+        # Flush the buffer before reading a new line
+        ser.reset_input_buffer()
+        if ser.in_waiting:
+            try:
+                clamp_val = ser.readline().decode('utf-8', errors='ignore').strip()
+                if clamp_val == "0":
+                    root.after(0, pid_status_label.config, {"text": "PID status: OFF", "bg": "red", "fg": "white"})
+                else:
+                    root.after(0, pid_status_label.config, {"text": "PID status: ON", "bg": "green", "fg": "white"})
+            except Exception as e:
+                log_message("Error reading clamp status: " + str(e))
+        time.sleep(0.01)
 
 # -----------------------
 # Optimization Functions
@@ -281,14 +299,9 @@ def open_optimization_popup():
     kd_excite_upper_entry.insert(0, "200")
     kd_excite_upper_entry.grid(row=2, column=3, padx=5, pady=5)
     
-    # Row 3: OK and Cancel buttons placed side-by-side in a button frame
+    # Row 3: OK and Cancel buttons side-by-side
     buttons_frame = tk.Frame(popup)
     buttons_frame.grid(row=3, column=0, columnspan=6, pady=10)
-    ok_button = tk.Button(buttons_frame, text="OK", command=lambda: on_ok())
-    ok_button.pack(side="left", expand=True, fill="x", padx=5)
-    cancel_button = tk.Button(buttons_frame, text="Cancel", command=lambda: on_cancel())
-    cancel_button.pack(side="left", expand=True, fill="x", padx=5)
-    
     def on_ok():
         try:
             trials = int(trials_entry.get())
@@ -314,9 +327,13 @@ def open_optimization_popup():
     def on_cancel():
         popup.destroy()
     
+    ok_button = tk.Button(buttons_frame, text="OK", command=on_ok)
+    ok_button.pack(side="left", expand=True, fill="x", padx=5)
+    cancel_button = tk.Button(buttons_frame, text="Cancel", command=on_cancel)
+    cancel_button.pack(side="left", expand=True, fill="x", padx=5)
+    
     popup.grab_set()
     root.wait_window(popup)
-    
 
 def toggle_optimization():
     open_optimization_popup()
@@ -344,14 +361,14 @@ toggle_frame.grid(row=0, column=0, columnspan=4, pady=5)
 for col in range(3):
     toggle_frame.grid_columnconfigure(col, weight=1)
 
-pid_button = tk.Button(toggle_frame, text="Toggle PID On/Off", command=toggle_pid)
+pid_button = tk.Button(toggle_frame, text="Turn PID On", command=toggle_pid, bg="green", fg="white")
 pid_button.grid(row=0, column=0, padx=5, pady=5)
-reset_button = tk.Button(toggle_frame, text="60s Reset Window", command=start_reset_timer)
+reset_button = tk.Button(toggle_frame, text="Reset Baseline Window", command=start_reset_timer)
 reset_button.grid(row=0, column=1, padx=5, pady=5)
-opt_button = tk.Button(toggle_frame, text="Toggle Online Optimization", command=toggle_optimization)
+opt_button = tk.Button(toggle_frame, text="Online Optimization", command=toggle_optimization)
 opt_button.grid(row=0, column=2, padx=5, pady=5)
 
-pid_status_label = tk.Label(root, text="PID is OFF", bg="red", fg="white", font=("Helvetica", 12, "bold"))
+pid_status_label = tk.Label(root, text="PID status: Detecting...", bg="gray", fg="white", font=("Helvetica", 12, "bold"))
 pid_status_label.grid(row=1, column=0, columnspan=4, padx=5, pady=5)
 
 progress_label = tk.Label(root, text="", font=("Helvetica", 10))
@@ -397,8 +414,10 @@ update_current_info()
 # Set PID to be OFF at startup.
 pid_on = False
 send_command("9\n")
-pid_status_label.config(text="PID is OFF", bg="red", fg="white")
-start_reset_timer()
+pid_button.config(text="Turn PID On", bg="green", fg="white")
+
+# Start background thread to read clamp status from Arduino.
+threading.Thread(target=read_clamp_status, daemon=True).start()
 
 root.mainloop()
 ser.close()

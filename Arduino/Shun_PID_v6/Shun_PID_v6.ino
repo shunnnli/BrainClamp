@@ -12,12 +12,12 @@
 // -----------------------
 // Global Flags & Modes
 // -----------------------
-bool onlineTuningMode = true;   // false = offline mode; true = online tuning mode
-bool startAutomatic = true;     // Set to true for AUTOMATIC startup, false for MANUAL (requires pressing '8')
+bool onlineTuningMode = false;   // false = offline mode; true = online tuning mode
+bool startAutomatic = false;     // Set to true for AUTOMATIC startup, false for MANUAL (requires pressing '8')
 
 bool baselineResetMode = false;
 unsigned long baselineResetStartTime = 0;
-
+unsigned long lastClampStatusTime = 0;
 
 // -----------------------
 // Photometry & Baseline Params
@@ -94,7 +94,7 @@ const byte ControlPin_inhibit = 7;   // Inhibition laser pin
 const byte ControlPin_excite = 12;   // Excitation laser pin
 const byte TargetPin = 3;           // (Unused in this version)
 const byte OutputPin_inhibit = A0;
-const byte ClampOnPin = A4;         // Turn on clamp or not (external control for trial type specific clamping)
+const byte ClampOnPin = 8;         // Turn on clamp or not (external control for trial type specific clamping)
 
 // Create an MCP4725 DAC object
 Adafruit_MCP4725 dac;
@@ -219,6 +219,7 @@ void loop() {
     else if (inChar == '8' && Start == 0) {
       myPID_inhibit.SetMode(AUTOMATIC);
       myPID_excite.SetMode(AUTOMATIC);
+      Serial.println("1");
       Serial.println("Received 8: PIDs set to AUTOMATIC");
       Start = millis();
       End = 0;
@@ -229,6 +230,7 @@ void loop() {
       if (End == 0) {
         myPID_inhibit.SetMode(MANUAL);
         myPID_excite.SetMode(MANUAL);
+        Serial.println("0");
         Serial.println("Received 9: PIDs set to MANUAL");
         state = Idle;
         digitalWrite(ControlPin_inhibit, HIGH);
@@ -251,7 +253,11 @@ void loop() {
   switch (state) {
     // Idle state: waiting to start
     case Idle:
-      // Nothing to do until command received
+      // In Idle state, output clamp status every 200ms
+      if (millis() - lastClampStatusTime >= 200) {
+        Serial.println("0");
+        lastClampStatusTime = millis();
+      }
       break;
 
     // Photometry state: process sensor data & calculate moving average and baseline
@@ -336,7 +342,8 @@ void loop() {
       myPID_excite.Compute();
 
       // Determine final control values:
-      if (digitalRead(ClampOnPin)){
+      bool ClampON = digitalRead(ClampOnPin);
+      if (ClampON){
         control_inhibit = 255 - output_inhibit;
         control_excite = 255 - output_excite;
       }else{
@@ -358,10 +365,17 @@ void loop() {
       analogWrite(ControlPin_inhibit, (int)control_inhibit);
       analogWrite(ControlPin_excite, (int)control_excite);
 
-      // Print error signal (used for online tuning)
-      double errorSignal = (target - input);
-      double squaredError = errorSignal * errorSignal;
-      Serial.println(squaredError);
+      // Serial output
+      // If online tuning mode is active, output only the error.
+      // Otherwise, output the state of ClampOnPin
+      if (onlineTuningMode){
+        double errorSignal = (target - input);
+        double squaredError = errorSignal * errorSignal;
+        Serial.println(squaredError);
+      }else{
+        // Send clamp status to GUI
+        Serial.println(ClampON);
+      }
       // Serial.print("zscore: ");
       // Serial.println(zscore);
       // Serial.print("baseline std: ");
@@ -371,8 +385,8 @@ void loop() {
       // Serial.println((input - lastInput)*Kd_inhibit / 255);
 
       // Send control output to DAC
-      int scaled_OutputInhibit = map(255-control_inhibit, 0, 255, 0, 4095);
-      dac.setVoltage(scaled_OutputInhibit, false);  // false: wait for the write to finish
+      // int scaled_OutputInhibit = map(255-control_inhibit, 0, 255, 0, 4095);
+      // dac.setVoltage(scaled_OutputInhibit, false);  // false: wait for the write to finish
       // analogWrite(OutputPin_inhibit, output_inhibit);
 
       state = Photometry; // Return to photometry for next sample

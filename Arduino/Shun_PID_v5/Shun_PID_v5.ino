@@ -90,6 +90,7 @@ const byte ControlPin_inhibit = 7;   // Inhibition laser pin
 const byte ControlPin_excite = 12;   // Excitation laser pin
 const byte TargetPin = 3;           // (Unused in this version)
 const byte OutputPin_inhibit = A0;
+const byte ClampOnPin = 8;
 
 // Create an MCP4725 DAC object
 Adafruit_MCP4725 dac;
@@ -115,6 +116,7 @@ void setup() {
   pinMode(ControlPin_excite, OUTPUT);
   pinMode(TargetPin, INPUT);
   pinMode(OutputPin_inhibit, OUTPUT);
+  pinMode(ClampOnPin, INPUT);
 
   pinMode(A2, OUTPUT);
   pinMode(A3, OUTPUT);
@@ -343,7 +345,7 @@ void loop() {
       // Print error signal (used for online tuning)
       double errorSignal = (target - input);
       double squaredError = errorSignal * errorSignal;
-      Serial.println(squaredError);
+      Serial.println(digitalRead(ClampOnPin));
       // Serial.print("zscore: ");
       // Serial.println(zscore);
       // Serial.print("baseline std: ");

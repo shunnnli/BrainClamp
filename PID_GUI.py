@@ -8,7 +8,7 @@ import optuna
 # Set up serial connection
 # -----------------------
 try:
-    ser = serial.Serial('COM4', 115200, timeout=1)
+    ser = serial.Serial('COM5', 115200, timeout=1)
     print("Serial connection opened")
 except Exception as e:
     print("Error opening serial port:", e)

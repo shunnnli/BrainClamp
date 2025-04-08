@@ -233,8 +233,8 @@ void loop() {
         Serial.println("0");
         Serial.println("Received 9: PIDs set to MANUAL");
         state = Idle;
-        digitalWrite(ControlPin_inhibit, HIGH);
-        digitalWrite(ControlPin_excite, HIGH);
+        digitalWrite(ControlPin_inhibit, LOW);
+        digitalWrite(ControlPin_excite, LOW);
         End = millis();
         Start = 0;
       }
@@ -342,20 +342,20 @@ void loop() {
       myPID_excite.Compute();
 
       // Determine final control values:
-      bool ClampON = digitalRead(ClampOnPin);
+      bool ClampON = true; //digitalRead(ClampOnPin);
       if (ClampON){
-        control_inhibit = 255 - output_inhibit;
-        control_excite = 255 - output_excite;
+        control_inhibit = output_inhibit;
+        control_excite = output_excite;
       }else{
-        control_inhibit = 255;
-        control_excite = 255;
+        control_inhibit = 0;
+        control_excite = 0;
       }
 
       // If in baseline reset mode, force outputs to zero for 60s
       if (baselineResetMode) {
         if (millis() - baselineResetStartTime < 60000) {
-          control_inhibit = 255;
-          control_excite = 255;
+          control_inhibit = 0;
+          control_excite = 0;
         } else {
           baselineResetMode = false; // Reset the mode after 60 seconds
         }

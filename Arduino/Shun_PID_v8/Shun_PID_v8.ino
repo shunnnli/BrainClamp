@@ -193,17 +193,24 @@ void loop() {
       int idx3 = paramStr.indexOf(',', idx2+1);
       int idx4 = paramStr.indexOf(',', idx3+1);
       int idx5 = paramStr.indexOf(',', idx4+1);
-      if (idx1 > 0 && idx2 > idx1 && idx3 > idx2 && idx4 > idx3 && idx5 > idx4) {
-        Kp_inhibit   = paramStr.substring(0, idx1).toFloat();
-        Ki_inhibit   = paramStr.substring(idx1+1, idx2).toFloat();
-        Kd_inhibit   = paramStr.substring(idx2+1, idx3).toFloat();
+      int idx6 = paramStr.indexOf(',', idx5+1);
+      int idx7 = paramStr.indexOf(',', idx6+1);
+      if (idx1 > 0 && idx2 > idx1 && idx3 > idx2 && idx4 > idx3 && idx5 > idx4 && idx6 > idx5 && idx7 > idx6) {
+        Kp_inhibit = paramStr.substring(0, idx1).toFloat();
+        Ki_inhibit = paramStr.substring(idx1+1, idx2).toFloat();
+        Kd_inhibit = paramStr.substring(idx2+1, idx3).toFloat();
         Kp_excite  = paramStr.substring(idx3+1, idx4).toFloat();
         Ki_excite  = paramStr.substring(idx4+1, idx5).toFloat();
-        Kd_excite  = paramStr.substring(idx5+1).toFloat();
-
-        // Update PID tunings
+        Kd_excite  = paramStr.substring(idx5+1, idx6).toFloat();
+        float Max_inhib = paramStr.substring(idx6+1, idx7).toFloat();
+        float Max_excite = paramStr.substring(idx7+1).toFloat();
+        
+        // Update PID tunings and store max power values accordingly.
         myPID_inhibit.SetTunings(Kp_inhibit, Ki_inhibit, Kd_inhibit);
         myPID_excite.SetTunings(Kp_excite, Ki_excite, Kd_excite);
+        // Update PID max
+        myPID_inhibit.SetOutputLimits(minPIDOutput, Max_inhib);
+        myPID_excite.SetOutputLimits(minPIDOutput, Max_excite);
 
         Serial.println("Online tuning parameters updated:");
         Serial.print("Inhib: Kp=");

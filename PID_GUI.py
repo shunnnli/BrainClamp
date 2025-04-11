@@ -25,7 +25,9 @@ current_pid = {
     "Kd_inhib": 60.0,
     "Kp_excite": 10.0,
     "Ki_excite": 10.0,
-    "Kd_excite": 40.0
+    "Kd_excite": 40.0,
+    "Max_inhib": 255,
+    "Max_excite": 255
 }
 # Global event used to cancel an ongoing reset timer thread
 reset_timer_event = None
@@ -66,6 +68,8 @@ def set_parameters():
         kp_excite = float(entry_kp_excite.get())
         ki_excite = float(entry_ki_excite.get())
         kd_excite = float(entry_kd_excite.get())
+        max_inhib = float(entry_max_inhib.get())
+        max_excite = float(entry_max_excite.get())
         
         current_pid.update({
             "Kp_inhib": kp_inhib,
@@ -73,10 +77,12 @@ def set_parameters():
             "Kd_inhib": kd_inhib,
             "Kp_excite": kp_excite,
             "Ki_excite": ki_excite,
-            "Kd_excite": kd_excite
+            "Kd_excite": kd_excite,
+            "Max_inhib": max_inhib,
+            "Max_excite": max_excite
         })
         
-        cmd = "T" + f"{kp_inhib},{ki_inhib},{kd_inhib},{kp_excite},{ki_excite},{kd_excite}\n"
+        cmd = "T" + f"{kp_inhib},{ki_inhib},{kd_inhib},{kp_excite},{ki_excite},{kd_excite},{max_inhib},{max_excite}\n"
         send_command(cmd)
         update_current_info()
     except Exception as e:
@@ -227,12 +233,15 @@ def open_calibration_popup():
         # Calibration command starts with 'C' followed by frequencies separated by comma
         cmd = "C" + f"{pwm_inhib},{pwm_excite}\n"
         send_command(cmd)
-        # popup.destroy()
+        # Update the main window Max Power entries with the chosen values.
+        entry_max_inhib.delete(0, tk.END)
+        entry_max_inhib.insert(0, str(pwm_inhib))
+        entry_max_excite.delete(0, tk.END)
+        entry_max_excite.insert(0, str(pwm_excite))
     
     def on_cancel():
-        send_command("9\n")  # "9" turns PID off
-        log_message("Command sent: PID OFF")
-        pid_button.config(text="Turn PID On", bg="green", fg="white")
+        cmd = "C" + f"{0},{0}\n"
+        send_command(cmd)
         popup.destroy()
     
     button_frame = tk.Frame(popup)
@@ -317,6 +326,11 @@ def open_optimization_popup():
     kd_inhib_upper_entry = tk.Entry(inhib_frame, width=5)
     kd_inhib_upper_entry.insert(0, "200")
     kd_inhib_upper_entry.grid(row=2, column=3, padx=5, pady=5)
+    # Max row
+    # tk.Label(inhib_frame, text="Max PWM freq:").grid(row=3, column=0, padx=5, pady=5)
+    # max_inhib_entry = tk.Entry(inhib_frame, width=5)
+    # max_inhib_entry.insert(0, "255")
+    # max_inhib_entry.grid(row=3, column=1, padx=5, pady=5)
     
     excite_frame = tk.LabelFrame(container, text="Excitation PID Parameters", labelanchor="n")
     excite_frame.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
@@ -347,6 +361,11 @@ def open_optimization_popup():
     kd_excite_upper_entry = tk.Entry(excite_frame, width=5)
     kd_excite_upper_entry.insert(0, "200")
     kd_excite_upper_entry.grid(row=2, column=3, padx=5, pady=5)
+    # Max row
+    # tk.Label(excite_frame, text="Max PWM freq:").grid(row=3, column=0, padx=5, pady=5)
+    # max_excite_entry = tk.Entry(excite_frame, width=5)
+    # max_excite_entry.insert(0, "255")
+    # max_excite_entry.grid(row=3, column=1, padx=5, pady=5)
     
     # Row 3: OK and Cancel buttons side-by-side
     buttons_frame = tk.Frame(popup)
@@ -361,6 +380,8 @@ def open_optimization_popup():
             kp_excite_range = (float(kp_excite_lower_entry.get()), float(kp_excite_upper_entry.get()))
             ki_excite_range = (float(ki_excite_lower_entry.get()), float(ki_excite_upper_entry.get()))
             kd_excite_range = (float(kd_excite_lower_entry.get()), float(kd_excite_upper_entry.get()))
+            # max_inhib = float(max_inhib_entry.get())
+            # max_excite = float(max_excite_entry.get())
             bidirectional = bidirectional_var.get()
             logscale = logscale_var.get()
         except Exception as e:
@@ -392,8 +413,8 @@ def toggle_optimization():
 # -----------------------
 def update_current_info():
     info_text = (f"                      PID Parameters\n"
-                 f"  Inhibit PID: Kp: {current_pid.get('Kp_inhib')}, Ki: {current_pid.get('Ki_inhib')}, Kd: {current_pid.get('Kd_inhib')}\n"
-                 f"  Excite  PID: Kp: {current_pid.get('Kp_excite')}, Ki: {current_pid.get('Ki_excite')}, Kd: {current_pid.get('Kd_excite')}")
+                 f"  Inhibit PID: Kp: {current_pid.get('Kp_inhib')}, Ki: {current_pid.get('Ki_inhib')}, Kd: {current_pid.get('Kd_inhib')}, Max: {current_pid.get('Max_inhib')}\n"
+                 f"  Excite  PID: Kp: {current_pid.get('Kp_excite')}, Ki: {current_pid.get('Ki_excite')}, Kd: {current_pid.get('Kd_excite')}, Max: {current_pid.get('Max_excite')}")
     info_label.config(text=info_text)
 
 # -----------------------
@@ -445,6 +466,13 @@ tk.Label(root, text="Kd_excite:").grid(row=5, column=2, padx=5, pady=5)
 entry_kd_excite = tk.Entry(root)
 entry_kd_excite.grid(row=5, column=3, padx=5, pady=5)
 
+tk.Label(root, text="Max power (inhib):").grid(row=6, column=0, padx=5, pady=5)
+entry_max_inhib = tk.Entry(root)
+entry_max_inhib.grid(row=6, column=1, padx=5, pady=5)
+tk.Label(root, text="Max power (excite):").grid(row=6, column=2, padx=5, pady=5)
+entry_max_excite = tk.Entry(root)
+entry_max_excite.grid(row=6, column=3, padx=5, pady=5)
+
 set_param_button = tk.Button(root, text="Set PID Parameters", command=set_parameters)
 set_param_button.grid(row=6, column=0, columnspan=4, padx=5, pady=5)
 
@@ -460,6 +488,8 @@ entry_kd_inhib.insert(0, "60.0")
 entry_kp_excite.insert(0, "10.0")
 entry_ki_excite.insert(0, "10.0")
 entry_kd_excite.insert(0, "40.0")
+entry_max_inhib.insert(0, "255")
+entry_max_excite.insert(0, "255")
 update_current_info()
 
 # Set PID to be OFF at startup.

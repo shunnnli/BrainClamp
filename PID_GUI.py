@@ -216,18 +216,43 @@ def run_optimization_custom(trials, measure_duration, kp_inhib_range, ki_inhib_r
 def open_calibration_popup():
     popup = tk.Toplevel(root)
     popup.title("Laser Calibration")
+
+    # Define a helper function to adjust slider value
+    def adjust_slider(slider, delta):
+        slider.set(slider.get() + delta)
     
-    tk.Label(popup, text="Inhibition PWM Frequency (Hz):").grid(row=0, column=0, padx=5, pady=5)
+    # Row 0: Inhibition Slider and adjustment buttons
+    tk.Label(popup, text="Inhibition PWM Frequency (Hz):").grid(row=0, column=0, padx=5, pady=5, sticky="e")
     inhib_slider = tk.Scale(popup, from_=0, to=255, orient=tk.HORIZONTAL)
     inhib_slider.set(50)  # Default value
-    inhib_slider.grid(row=0, column=1, padx=5, pady=5)
+    inhib_slider.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
     
-    tk.Label(popup, text="Excitation PWM Frequency (Hz):").grid(row=1, column=0, padx=5, pady=5)
+    # Buttons for inhibition slider adjustments
+    minus_inhib = tk.Button(popup, text="-", command=lambda: adjust_slider(inhib_slider, -1))
+    minus_inhib.grid(row=0, column=2, padx=5, pady=5)
+    plus_inhib = tk.Button(popup, text="+", command=lambda: adjust_slider(inhib_slider, 1))
+    plus_inhib.grid(row=0, column=3, padx=5, pady=5)
+    
+    # Row 1: Excitation Slider and adjustment buttons
+    tk.Label(popup, text="Excitation PWM Frequency (Hz):").grid(row=1, column=0, padx=5, pady=5, sticky="e")
     excite_slider = tk.Scale(popup, from_=0, to=255, orient=tk.HORIZONTAL)
     excite_slider.set(50)  # Default value
-    excite_slider.grid(row=1, column=1, padx=5, pady=5)
+    excite_slider.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
     
-    def on_ok():
+    # Buttons for excitation slider adjustments
+    minus_excite = tk.Button(popup, text="-", command=lambda: adjust_slider(excite_slider, -1))
+    minus_excite.grid(row=1, column=2, padx=5, pady=5)
+    plus_excite = tk.Button(popup, text="+", command=lambda: adjust_slider(excite_slider, 1))
+    plus_excite.grid(row=1, column=3, padx=5, pady=5)
+    
+    def on_test():
+        pwm_inhib = inhib_slider.get()
+        pwm_excite = excite_slider.get()
+        # Calibration command starts with 'C' followed by frequencies separated by comma
+        cmd = "C" + f"{pwm_inhib},{pwm_excite}\n"
+        send_command(cmd)
+
+    def on_save():
         pwm_inhib = inhib_slider.get()
         pwm_excite = excite_slider.get()
         # Calibration command starts with 'C' followed by frequencies separated by comma
@@ -238,6 +263,10 @@ def open_calibration_popup():
         entry_max_inhib.insert(0, str(pwm_inhib))
         entry_max_excite.delete(0, tk.END)
         entry_max_excite.insert(0, str(pwm_excite))
+        cmd = "C" + f"{0},{0}\n"
+        send_command(cmd)
+        set_parameters()
+        popup.destroy()
     
     def on_cancel():
         cmd = "C" + f"{0},{0}\n"
@@ -245,9 +274,11 @@ def open_calibration_popup():
         popup.destroy()
     
     button_frame = tk.Frame(popup)
-    button_frame.grid(row=2, column=0, columnspan=2, pady=10)
-    ok_button = tk.Button(button_frame, text="OK", command=on_ok)
-    ok_button.pack(side="left", expand=True, fill="x", padx=5)
+    button_frame.grid(row=2, column=0, columnspan=3, pady=10)
+    test_button = tk.Button(button_frame, text="Test", command=on_test)
+    test_button.pack(side="left", expand=True, fill="x", padx=5)
+    save_button = tk.Button(button_frame, text="Save", command=on_save)
+    save_button.pack(side="left", expand=True, fill="x", padx=5)
     cancel_button = tk.Button(button_frame, text="Cancel", command=on_cancel)
     cancel_button.pack(side="left", expand=True, fill="x", padx=5)
     
@@ -412,7 +443,7 @@ def toggle_optimization():
 # Update Display Functions
 # -----------------------
 def update_current_info():
-    info_text = (f"                      PID Parameters\n"
+    info_text = (f"                            PID Parameters\n"
                  f"  Inhibit PID: Kp: {current_pid.get('Kp_inhib')}, Ki: {current_pid.get('Ki_inhib')}, Kd: {current_pid.get('Kd_inhib')}, Max: {current_pid.get('Max_inhib')}\n"
                  f"  Excite  PID: Kp: {current_pid.get('Kp_excite')}, Ki: {current_pid.get('Ki_excite')}, Kd: {current_pid.get('Kd_excite')}, Max: {current_pid.get('Max_excite')}")
     info_label.config(text=info_text)
@@ -474,13 +505,13 @@ entry_max_excite = tk.Entry(root)
 entry_max_excite.grid(row=6, column=3, padx=5, pady=5)
 
 set_param_button = tk.Button(root, text="Set PID Parameters", command=set_parameters)
-set_param_button.grid(row=6, column=0, columnspan=4, padx=5, pady=5)
+set_param_button.grid(row=7, column=0, columnspan=4, padx=5, pady=5)
 
 info_label = tk.Label(root, text="PID Parameters: Not Set", justify=tk.LEFT)
-info_label.grid(row=7, column=0, columnspan=4, padx=5, pady=5)
+info_label.grid(row=8, column=0, columnspan=4, padx=5, pady=5)
 
 opt_text_box = tk.Text(root, height=10, width=50)
-opt_text_box.grid(row=8, column=0, columnspan=4, padx=5, pady=5)
+opt_text_box.grid(row=9, column=0, columnspan=4, padx=5, pady=5)
 
 entry_kp_inhib.insert(0, "10.0")
 entry_ki_inhib.insert(0, "10.0")

@@ -230,6 +230,9 @@ def open_calibration_popup():
         # popup.destroy()
     
     def on_cancel():
+        send_command("9\n")  # "9" turns PID off
+        log_message("Command sent: PID OFF")
+        pid_button.config(text="Turn PID On", bg="green", fg="white")
         popup.destroy()
     
     button_frame = tk.Frame(popup)

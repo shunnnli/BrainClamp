@@ -23,9 +23,9 @@ current_pid = {
     "Kp_inhib": 10.0,
     "Ki_inhib": 10.0,
     "Kd_inhib": 60.0,
-    "Kp_excite": 1.0,
-    "Ki_excite": 1.0,
-    "Kd_excite": 20.0
+    "Kp_excite": 10.0,
+    "Ki_excite": 10.0,
+    "Kd_excite": 40.0
 }
 # Global event used to cancel an ongoing reset timer thread
 reset_timer_event = None
@@ -109,11 +109,15 @@ def read_clamp_status():
         ser.reset_input_buffer()
         if ser.in_waiting:
             try:
-                clamp_val = ser.readline().decode('utf-8', errors='ignore').strip()
-                if clamp_val == "0":
-                    root.after(0, pid_status_label.config, {"text": "PID status: OFF", "bg": "red", "fg": "white"})
-                else:
-                    root.after(0, pid_status_label.config, {"text": "PID status: ON", "bg": "green", "fg": "white"})
+                line = ser.readline().decode('utf-8', errors='ignore').strip()
+                # We assume that during optimization the Arduino outputs error numbers.
+                # When not optimizing, Arduino outputs clamp status ("CLAMP:0" or "CLAMP:1").
+                if line.startswith("CLAMP:"):
+                    clamp_val = clamp_val = line.split(":")[1].strip()
+                    if clamp_val == "0":
+                        root.after(0, pid_status_label.config, {"text": "PID status: OFF", "bg": "red", "fg": "white"})
+                    else:
+                        root.after(0, pid_status_label.config, {"text": "PID status: ON", "bg": "green", "fg": "white"})
             except Exception as e:
                 log_message("Error reading clamp status: " + str(e))
         time.sleep(0.01)
@@ -199,6 +203,48 @@ def run_optimization_custom(trials, measure_duration, kp_inhib_range, ki_inhib_r
         entry_kd_excite.insert(0, str(best_params["Kd_excite"]))
         update_current_info()
     root.after(0, update_gui_best)
+
+# -----------------------
+# Calibration Settings Pop-up
+# -----------------------
+def open_calibration_popup():
+    popup = tk.Toplevel(root)
+    popup.title("Laser Calibration")
+    
+    tk.Label(popup, text="Inhibition PWM Frequency (Hz):").grid(row=0, column=0, padx=5, pady=5)
+    inhib_slider = tk.Scale(popup, from_=0, to=255, orient=tk.HORIZONTAL)
+    inhib_slider.set(50)  # Default value
+    inhib_slider.grid(row=0, column=1, padx=5, pady=5)
+    
+    tk.Label(popup, text="Excitation PWM Frequency (Hz):").grid(row=1, column=0, padx=5, pady=5)
+    excite_slider = tk.Scale(popup, from_=0, to=255, orient=tk.HORIZONTAL)
+    excite_slider.set(50)  # Default value
+    excite_slider.grid(row=1, column=1, padx=5, pady=5)
+    
+    def on_ok():
+        pwm_inhib = inhib_slider.get()
+        pwm_excite = excite_slider.get()
+        # Calibration command starts with 'C' followed by frequencies separated by comma
+        cmd = "C" + f"{pwm_inhib},{pwm_excite}\n"
+        send_command(cmd)
+        # popup.destroy()
+    
+    def on_cancel():
+        popup.destroy()
+    
+    button_frame = tk.Frame(popup)
+    button_frame.grid(row=2, column=0, columnspan=2, pady=10)
+    ok_button = tk.Button(button_frame, text="OK", command=on_ok)
+    ok_button.pack(side="left", expand=True, fill="x", padx=5)
+    cancel_button = tk.Button(button_frame, text="Cancel", command=on_cancel)
+    cancel_button.pack(side="left", expand=True, fill="x", padx=5)
+    
+    popup.grab_set()
+    root.wait_window(popup)
+
+# Modify the optimization toggle to simply open the popup
+def toggle_optimization():
+    open_optimization_popup()
 
 # -----------------------
 # Optimization Settings Pop-up
@@ -367,6 +413,8 @@ reset_button = tk.Button(toggle_frame, text="Reset Baseline Window", command=sta
 reset_button.grid(row=0, column=1, padx=5, pady=5)
 opt_button = tk.Button(toggle_frame, text="Online Optimization", command=toggle_optimization)
 opt_button.grid(row=0, column=2, padx=5, pady=5)
+calib_button = tk.Button(toggle_frame, text="Calibrate Laser", command=open_calibration_popup)
+calib_button.grid(row=0, column=3, padx=5, pady=5)
 
 pid_status_label = tk.Label(root, text="PID status: Detecting...", bg="gray", fg="white", font=("Helvetica", 12, "bold"))
 pid_status_label.grid(row=1, column=0, columnspan=4, padx=5, pady=5)
@@ -406,9 +454,9 @@ opt_text_box.grid(row=8, column=0, columnspan=4, padx=5, pady=5)
 entry_kp_inhib.insert(0, "10.0")
 entry_ki_inhib.insert(0, "10.0")
 entry_kd_inhib.insert(0, "60.0")
-entry_kp_excite.insert(0, "1.0")
-entry_ki_excite.insert(0, "1.0")
-entry_kd_excite.insert(0, "20.0")
+entry_kp_excite.insert(0, "10.0")
+entry_ki_excite.insert(0, "10.0")
+entry_kd_excite.insert(0, "40.0")
 update_current_info()
 
 # Set PID to be OFF at startup.

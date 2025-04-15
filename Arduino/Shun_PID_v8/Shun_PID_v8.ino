@@ -14,7 +14,7 @@
 // -----------------------
 bool onlineTuningMode = false;   // false = offline mode; true = online tuning mode
 bool startAutomatic = false;     // Set to true for AUTOMATIC startup, false for MANUAL (requires pressing '8')
-
+bool debugMode = false;
 bool baselineResetMode = false;
 unsigned long baselineResetStartTime = 0;
 unsigned long lastClampStatusTime = 0;
@@ -76,9 +76,9 @@ double control_excite;   // Final control value for excitation laser
 // Default PID parameters for inhibition (reverse action) & excitation (direct)
 double Kp_inhibit = 9, Ki_inhibit = 8.6, Kd_inhibit = 55;
 double Kp_excite = 10, Ki_excite = 15, Kd_excite = 100;
-double minPIDOutput = 0;
-double maxPIDOutput = 255;
 double PIDSampleTime = 1;    // in ms
+float Max_inhib = 255;
+float Max_excite = 255;
 
 // -----------------------
 // PID Setup (using PID_v1 library)
@@ -144,8 +144,8 @@ void setup() {
     myPID_excite.SetMode(MANUAL);
   }
 
-  myPID_inhibit.SetOutputLimits(minPIDOutput, maxPIDOutput);
-  myPID_excite.SetOutputLimits(minPIDOutput, maxPIDOutput);
+  myPID_inhibit.SetOutputLimits(0, Max_inhib);
+  myPID_excite.SetOutputLimits(0, Max_excite);
   myPID_inhibit.SetSampleTime(PIDSampleTime);
   myPID_excite.SetSampleTime(PIDSampleTime);
 
@@ -177,78 +177,10 @@ void loop() {
       onlineTuningMode = !onlineTuningMode;
       Serial.print("Online Tuning Mode: ");
       Serial.println(onlineTuningMode ? "ON" : "OFF");
-    }
-    
-    // If in online tuning mode, expect a tuning command starting with 'T'
-    else if (onlineTuningMode && inChar == 'T') {
-      // Expect parameters as comma-separated values:
-      // Format: T,<Kp_inhibit>,<Ki_inhibit>,<Kd_inhibit>,<Kp_excite>,<Ki_excite>,<Kd_excite>
-      while (!Serial.available()) {} // wait for rest of message
-      String paramStr = Serial.readStringUntil('\n');
-      // Concatenate with initial 'T' removed.
-      paramStr.trim();
-      // Parse parameters
-      int idx1 = paramStr.indexOf(',');
-      int idx2 = paramStr.indexOf(',', idx1+1);
-      int idx3 = paramStr.indexOf(',', idx2+1);
-      int idx4 = paramStr.indexOf(',', idx3+1);
-      int idx5 = paramStr.indexOf(',', idx4+1);
-      int idx6 = paramStr.indexOf(',', idx5+1);
-      int idx7 = paramStr.indexOf(',', idx6+1);
-      if (idx1 > 0 && idx2 > idx1 && idx3 > idx2 && idx4 > idx3 && idx5 > idx4 && idx6 > idx5 && idx7 > idx6) {
-        Kp_inhibit = paramStr.substring(0, idx1).toFloat();
-        Ki_inhibit = paramStr.substring(idx1+1, idx2).toFloat();
-        Kd_inhibit = paramStr.substring(idx2+1, idx3).toFloat();
-        Kp_excite  = paramStr.substring(idx3+1, idx4).toFloat();
-        Ki_excite  = paramStr.substring(idx4+1, idx5).toFloat();
-        Kd_excite  = paramStr.substring(idx5+1, idx6).toFloat();
-        float Max_inhib = paramStr.substring(idx6+1, idx7).toFloat();
-        float Max_excite = paramStr.substring(idx7+1).toFloat();
-        
-        // Update PID tunings and store max power values accordingly.
-        myPID_inhibit.SetTunings(Kp_inhibit, Ki_inhibit, Kd_inhibit);
-        myPID_excite.SetTunings(Kp_excite, Ki_excite, Kd_excite);
-        // Update PID max
-        myPID_inhibit.SetOutputLimits(minPIDOutput, Max_inhib);
-        myPID_excite.SetOutputLimits(minPIDOutput, Max_excite);
 
-        Serial.println("Online tuning parameters updated:");
-        Serial.print("Inhib: Kp=");
-        Serial.print(Kp_inhibit); Serial.print(" Ki=");
-        Serial.print(Ki_inhibit); Serial.print(" Kd=");
-        Serial.println(Kd_inhibit);
-        Serial.print("Excite: Kp=");
-        Serial.print(Kp_excite); Serial.print(" Ki=");
-        Serial.print(Ki_excite); Serial.print(" Kd=");
-        Serial.println(Kd_excite);
-      }
-    }
-    
-    // '8' starts control (PID set to AUTOMATIC)
-    else if (inChar == '8' && Start == 0) {
-      myPID_inhibit.SetMode(AUTOMATIC);
-      myPID_excite.SetMode(AUTOMATIC);
-      Serial.print("CLAMP:");
-      Serial.println("1");
-      Serial.println("Received 8: PIDs set to AUTOMATIC");
-      Start = millis();
-      End = 0;
-      state = Photometry;
-    }
-    
-    // '9' stops control (PID set to MANUAL)
-    else if (inChar == '9') {
-      if (End == 0) {
-        myPID_inhibit.SetMode(MANUAL);
-        myPID_excite.SetMode(MANUAL);
-        Serial.print("CLAMP:");
-        Serial.println("0");
-        Serial.println("Received 9: PIDs set to MANUAL");
-        state = Idle;
-        digitalWrite(ControlPin_inhibit, LOW);
-        digitalWrite(ControlPin_excite, LOW);
-        End = millis();
-        Start = 0;
+      // Flush any remaining characters so stray digits aren’t misinterpreted.
+      while (Serial.available()) {
+        Serial.read();
       }
     }
     
@@ -257,6 +189,29 @@ void loop() {
       baselineResetMode = true;
       baselineResetStartTime = millis();
       Serial.println("Entering baseline reset mode for 60s: PID output forced to zero.");
+
+      // Flush any remaining characters so stray digits aren’t misinterpreted.
+      while (Serial.available()) {
+        Serial.read();
+      }
+    }
+
+    else if (inChar == 'D'){
+      // Debug mode command: read next character (expected '1' or '0')
+      while (!Serial.available()) {} // wait for next byte
+      char debugChar = Serial.read();
+      if (debugChar == '1') {
+          debugMode = true;
+          Serial.println("Debug mode enabled.");
+      } else if (debugChar == '0') {
+          debugMode = false;
+          Serial.println("Debug mode disabled.");
+      }
+
+      // Flush any remaining characters so stray digits aren’t misinterpreted.
+      while (Serial.available()) {
+        Serial.read();
+      }
     }
 
     else if (inChar == 'C') {  // Calibration command
@@ -274,6 +229,99 @@ void loop() {
           Serial.print(pwmInhib);
           Serial.print(",");
           Serial.println(pwmExcite);
+      }
+
+      // Flush any remaining characters so stray digits aren’t misinterpreted.
+      while (Serial.available()) {
+        Serial.read();
+      }
+    }
+
+    // If in online tuning mode, expect a tuning command starting with 'T'
+    else if (inChar == 'T') {
+      // Expect parameters as comma-separated values:
+      // Format: T,<Kp_inhibit>,<Ki_inhibit>,<Kd_inhibit>,<Kp_excite>,<Ki_excite>,<Kd_excite>
+      while (!Serial.available()) {} // wait for rest of message
+      String paramStr = Serial.readStringUntil('\n');
+      paramStr.trim(); // Concatenate with initial 'T' removed.
+
+      // Parse parameters
+      int idx1 = paramStr.indexOf(',');
+      int idx2 = paramStr.indexOf(',', idx1+1);
+      int idx3 = paramStr.indexOf(',', idx2+1);
+      int idx4 = paramStr.indexOf(',', idx3+1);
+      int idx5 = paramStr.indexOf(',', idx4+1);
+      int idx6 = paramStr.indexOf(',', idx5+1);
+      int idx7 = paramStr.indexOf(',', idx6+1);
+      if (idx1 > 0 && idx2 > idx1 && idx3 > idx2 && idx4 > idx3 && idx5 > idx4 && idx6 > idx5 && idx7 > idx6) {
+        Kp_inhibit = paramStr.substring(0, idx1).toFloat();
+        Ki_inhibit = paramStr.substring(idx1+1, idx2).toFloat();
+        Kd_inhibit = paramStr.substring(idx2+1, idx3).toFloat();
+        Kp_excite  = paramStr.substring(idx3+1, idx4).toFloat();
+        Ki_excite  = paramStr.substring(idx4+1, idx5).toFloat();
+        Kd_excite  = paramStr.substring(idx5+1, idx6).toFloat();
+        Max_inhib = paramStr.substring(idx6+1, idx7).toFloat();
+        Max_excite = paramStr.substring(idx7+1).toFloat();
+        
+        // Update PID tunings and store max power values accordingly.
+        myPID_inhibit.SetTunings(Kp_inhibit, Ki_inhibit, Kd_inhibit);
+        myPID_excite.SetTunings(Kp_excite, Ki_excite, Kd_excite);
+        // Update PID max
+        myPID_inhibit.SetOutputLimits(0, Max_inhib);
+        myPID_excite.SetOutputLimits(0, Max_excite);
+
+        Serial.println("Online tuning parameters updated:");
+        Serial.print("Inhib: Kp="); Serial.print(Kp_inhibit); 
+        Serial.print(" Ki="); Serial.print(Ki_inhibit); 
+        Serial.print(" Kd="); Serial.println(Kd_inhibit);
+        Serial.print("Excite: Kp="); Serial.print(Kp_excite); 
+        Serial.print(" Ki="); Serial.print(Ki_excite); 
+        Serial.print(" Kd="); Serial.println(Kd_excite);
+        Serial.print("Max Inhib: "); Serial.println(Max_inhib);
+        Serial.print("Max Excite: "); Serial.println(Max_excite);
+
+        // Flush any remaining characters so stray digits aren’t misinterpreted.
+        while (Serial.available()) {
+          Serial.read();
+        }
+      }
+    }
+
+    // '8' starts control (PID set to AUTOMATIC)
+    else if (inChar == '8' && Start == 0) {
+      myPID_inhibit.SetMode(AUTOMATIC);
+      myPID_excite.SetMode(AUTOMATIC);
+      Serial.print("CLAMP:");
+      Serial.println("1");
+      Serial.println("Received 8: PIDs set to AUTOMATIC");
+      Start = millis();
+      End = 0;
+      state = Photometry;
+
+      // Flush any remaining characters so stray digits aren’t misinterpreted.
+      while (Serial.available()) {
+        Serial.read();
+      }
+    }
+    
+    // '9' stops control (PID set to MANUAL)
+    else if (inChar == '9') {
+      if (End == 0) {
+        myPID_inhibit.SetMode(MANUAL);
+        myPID_excite.SetMode(MANUAL);
+        Serial.print("CLAMP:");
+        Serial.println("0");
+        Serial.println("Received 9: PIDs set to MANUAL");
+        state = Idle;
+        digitalWrite(ControlPin_inhibit, LOW);
+        digitalWrite(ControlPin_excite, LOW);
+        End = millis();
+        Start = 0;
+      }
+
+      // Flush any remaining characters so stray digits aren’t misinterpreted.
+      while (Serial.available()) {
+        Serial.read();
       }
     }
   }
@@ -375,8 +423,8 @@ void loop() {
       // Determine final control values:
       bool ClampON = true; //digitalRead(ClampOnPin);
       if (ClampON){
-        control_inhibit = output_inhibit;
-        control_excite = output_excite;
+        control_inhibit = constrain(output_inhibit, 0, Max_inhib);
+        control_excite = constrain(output_excite, 0, Max_excite);
       }else{
         control_inhibit = 0;
         control_excite = 0;
@@ -403,18 +451,22 @@ void loop() {
         double errorSignal = (target - input);
         double squaredError = errorSignal * errorSignal;
         Serial.println(squaredError);
-      }else{
+      } else if (debugMode) {
+          // Print real-time values.
+          double errorSignal = (target - input);
+          Serial.print("Target: "); Serial.print(target, 3);
+          Serial.print("  Signal: "); Serial.print(processedSignal,3);
+          Serial.print("  Input: "); Serial.print(input, 3);
+          Serial.print("  Baseline Std: "); Serial.print(baseline_std, 3);
+          Serial.print("  Baseline: "); Serial.print(baseline, 3);
+          Serial.print("  Error: "); Serial.print(errorSignal, 3);
+          Serial.print("  Max (inhi): "); Serial.print(Max_inhib, 1);
+          Serial.print("  Max (exci): "); Serial.println(Max_excite, 1);
+      } else {
         // Send clamp status to GUI
         Serial.print("CLAMP:");
         Serial.println(ClampON);
       }
-      // Serial.print("zscore: ");
-      // Serial.println(zscore);
-      // Serial.print("baseline std: ");
-      // Serial.println(baselineWindow.std());
-      // Serial.print("output: ");
-      // Serial.println(output_inhibit);
-      // Serial.println((input - lastInput)*Kd_inhibit / 255);
 
       // Send control output to DAC
       // int scaled_OutputInhibit = map(255-control_inhibit, 0, 255, 0, 4095);

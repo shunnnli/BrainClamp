@@ -7,18 +7,33 @@ import optuna
 # -----------------------
 # Set up serial connection
 # -----------------------
-try:
-    ser = serial.Serial('COM5', 115200, timeout=1)
-    print("Serial connection opened")
-except Exception as e:
-    print("Error opening serial port:", e)
+start_time = time.time()
+connected = False
+lastFlushTime = time.time()
+
+while time.time() - start_time <= 10:
+    try:
+        ser = serial.Serial('COM5', 115200, timeout=1)
+        print("\nSerial connection opened")
+        connected = True
+        break
+    except Exception as e:
+        countdown = int(10 - (time.time() - start_time))
+        msg = f"Trying to connect to Arduino... {countdown} seconds remaining"
+        print(msg.ljust(70), end="\r")
+        
+if not connected:
+    print("\nError: Failed to connect to Arduino after 10 seconds.")
     exit(1)
 
 time.sleep(2)  # Wait for the serial connection to initialize
 
-# Global state variables
+# -----------------------
+# Set up global state variables
+# -----------------------
 pid_on = False
 optuna_running = False
+debugModeGUI = False
 current_pid = {
     "Kp_inhib": 10.0,
     "Ki_inhib": 10.0,
@@ -55,10 +70,16 @@ def toggle_pid():
         send_command("8\n")  # "8" turns PID on
         log_message("Command sent: PID ON")
         pid_button.config(text="Turn PID Off", bg="red", fg="white")
+        set_parameters()
     else:
         send_command("9\n")  # "9" turns PID off
         log_message("Command sent: PID OFF")
         pid_button.config(text="Turn PID On", bg="green", fg="white")
+
+def toggle_debug():
+    global debugModeGUI
+    debugModeGUI = debug_var.get()
+    send_command("D1\n" if debugModeGUI else "D0\n")  # Still send command to Arduino if desired
 
 def set_parameters():
     try:
@@ -82,7 +103,7 @@ def set_parameters():
             "Max_excite": max_excite
         })
         
-        cmd = "T" + f"{kp_inhib},{ki_inhib},{kd_inhib},{kp_excite},{ki_excite},{kd_excite},{max_inhib},{max_excite}\n"
+        cmd = "T" + f"{kp_inhib},{ki_inhib},{kd_inhib},{kp_excite},{ki_excite},{kd_excite},{max_inhib},{max_excite},\n"
         send_command(cmd)
         update_current_info()
     except Exception as e:
@@ -110,22 +131,33 @@ def start_reset_timer():
 # Continuously read clamp status from Arduino
 # -----------------------
 def read_clamp_status():
+    global lastFlushTime
     while True:
-        # Flush the buffer before reading a new line
-        ser.reset_input_buffer()
-        if ser.in_waiting:
-            try:
-                line = ser.readline().decode('utf-8', errors='ignore').strip()
-                # We assume that during optimization the Arduino outputs error numbers.
-                # When not optimizing, Arduino outputs clamp status ("CLAMP:0" or "CLAMP:1").
-                if line.startswith("CLAMP:"):
-                    clamp_val = clamp_val = line.split(":")[1].strip()
-                    if clamp_val == "0":
-                        root.after(0, pid_status_label.config, {"text": "PID status: OFF", "bg": "red", "fg": "white"})
-                    else:
-                        root.after(0, pid_status_label.config, {"text": "PID status: ON", "bg": "green", "fg": "white"})
-            except Exception as e:
-                log_message("Error reading clamp status: " + str(e))
+        try:
+            if debugModeGUI:
+                # In debug mode, every 5 seconds flush the serial buffer
+                if time.time() - lastFlushTime > 5:
+                    ser.reset_input_buffer()
+                    lastFlushTime = time.time()
+                # Proceed to read whatever is available
+                if ser.in_waiting:
+                    line = ser.readline().decode('utf-8', errors='ignore').strip()
+                    if line:  # Only log nonempty lines
+                        log_message("DEBUG: " + line)
+            else:
+                # In non-debug mode, we simply flush the buffer (to avoid accumulation)
+                ser.reset_input_buffer()
+                if ser.in_waiting:
+                    line = ser.readline().decode('utf-8', errors='ignore').strip()
+                    # Normal operation: update the status only if the line contains clamp info.
+                    if line.startswith("CLAMP:"):
+                        clamp_val = clamp_val = line.split(":")[1].strip()
+                        if clamp_val == "0":
+                            root.after(0, pid_status_label.config, {"text": "PID status: OFF", "bg": "red", "fg": "white"})
+                        else:
+                            root.after(0, pid_status_label.config, {"text": "PID status: ON", "bg": "green", "fg": "white"})
+        except Exception as e:
+            log_message("Error reading clamp status: " + str(e))
         time.sleep(0.01)
 
 # -----------------------
@@ -161,9 +193,12 @@ def run_optimization_custom(trials, measure_duration, kp_inhib_range, ki_inhib_r
             ki_excite = 1.0
             kd_excite = 1.0
 
-        log_message(f"Testing parameters: Inhib -> Kp:{kp_inhib:.2f}, Ki:{ki_inhib:.2f}, Kd:{kd_inhib:.2f}; " +
-                    f"Excite -> Kp:{kp_excite:.2f}, Ki:{ki_excite:.2f}, Kd:{kd_excite:.2f}")
-        cmd = "T" + f"{kp_inhib},{ki_inhib},{kd_inhib},{kp_excite},{ki_excite},{kd_excite}\n"
+        max_inhib = float(entry_max_inhib.get())
+        max_excite = float(entry_max_excite.get())
+
+        log_message(f"Testing parameters: Inhib -> Kp:{kp_inhib:.2f}, Ki:{ki_inhib:.2f}, Kd:{kd_inhib:.2f}, max: {max_inhib}; " +
+                    f"Excite -> Kp:{kp_excite:.2f}, Ki:{ki_excite:.2f}, Kd:{kd_excite:.2f}, max: {max_excite}")
+        cmd = "T" + f"{kp_inhib},{ki_inhib},{kd_inhib},{kp_excite},{ki_excite},{kd_excite},{max_inhib},{max_excite},\n"
         send_command(cmd)
         time.sleep(2)
         
@@ -224,7 +259,7 @@ def open_calibration_popup():
     # Row 0: Inhibition Slider and adjustment buttons
     tk.Label(popup, text="Inhibition PWM Frequency (Hz):").grid(row=0, column=0, padx=5, pady=5, sticky="e")
     inhib_slider = tk.Scale(popup, from_=0, to=255, orient=tk.HORIZONTAL)
-    inhib_slider.set(50)  # Default value
+    inhib_slider.set(80)  # Default value
     inhib_slider.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
     
     # Buttons for inhibition slider adjustments
@@ -236,7 +271,7 @@ def open_calibration_popup():
     # Row 1: Excitation Slider and adjustment buttons
     tk.Label(popup, text="Excitation PWM Frequency (Hz):").grid(row=1, column=0, padx=5, pady=5, sticky="e")
     excite_slider = tk.Scale(popup, from_=0, to=255, orient=tk.HORIZONTAL)
-    excite_slider.set(50)  # Default value
+    excite_slider.set(40)  # Default value
     excite_slider.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
     
     # Buttons for excitation slider adjustments
@@ -255,17 +290,15 @@ def open_calibration_popup():
     def on_save():
         pwm_inhib = inhib_slider.get()
         pwm_excite = excite_slider.get()
-        # Calibration command starts with 'C' followed by frequencies separated by comma
-        cmd = "C" + f"{pwm_inhib},{pwm_excite}\n"
-        send_command(cmd)
         # Update the main window Max Power entries with the chosen values.
         entry_max_inhib.delete(0, tk.END)
         entry_max_inhib.insert(0, str(pwm_inhib))
         entry_max_excite.delete(0, tk.END)
         entry_max_excite.insert(0, str(pwm_excite))
-        cmd = "C" + f"{0},{0}\n"
-        send_command(cmd)
         set_parameters()
+        send_command("9\n")  # "9" turns PID off
+        log_message("Command sent: PID OFF")
+        pid_button.config(text="Turn PID On", bg="green", fg="white")
         popup.destroy()
     
     def on_cancel():
@@ -454,12 +487,13 @@ def update_current_info():
 root = tk.Tk()
 root.title("PID Controller GUI")
 
+root.grid_rowconfigure(9, weight=1)
 for col in range(4):
     root.grid_columnconfigure(col, weight=1)
 
 toggle_frame = tk.Frame(root)
-toggle_frame.grid(row=0, column=0, columnspan=4, pady=5)
-for col in range(3):
+toggle_frame.grid(row=0, column=0, columnspan=5, pady=5)
+for col in range(5):
     toggle_frame.grid_columnconfigure(col, weight=1)
 
 pid_button = tk.Button(toggle_frame, text="Turn PID On", command=toggle_pid, bg="green", fg="white")
@@ -470,6 +504,11 @@ opt_button = tk.Button(toggle_frame, text="Online Optimization", command=toggle_
 opt_button.grid(row=0, column=2, padx=5, pady=5)
 calib_button = tk.Button(toggle_frame, text="Calibrate Laser", command=open_calibration_popup)
 calib_button.grid(row=0, column=3, padx=5, pady=5)
+# Create a new debug checkbox in the top row
+debug_var = tk.BooleanVar(value=False)
+debug_checkbox = tk.Checkbutton(toggle_frame, text="Debug mode", variable=debug_var,
+                                command=toggle_debug)
+debug_checkbox.grid(row=0, column=4, padx=5, pady=5)
 
 pid_status_label = tk.Label(root, text="PID status: Detecting...", bg="gray", fg="white", font=("Helvetica", 12, "bold"))
 pid_status_label.grid(row=1, column=0, columnspan=4, padx=5, pady=5)
@@ -510,8 +549,8 @@ set_param_button.grid(row=7, column=0, columnspan=4, padx=5, pady=5)
 info_label = tk.Label(root, text="PID Parameters: Not Set", justify=tk.LEFT)
 info_label.grid(row=8, column=0, columnspan=4, padx=5, pady=5)
 
-opt_text_box = tk.Text(root, height=10, width=50)
-opt_text_box.grid(row=9, column=0, columnspan=4, padx=5, pady=5)
+opt_text_box = tk.Text(root, height=10, width=170)
+opt_text_box.grid(row=9, column=0, columnspan=4, padx=5, pady=5, sticky='nsew')
 
 entry_kp_inhib.insert(0, "10.0")
 entry_ki_inhib.insert(0, "10.0")

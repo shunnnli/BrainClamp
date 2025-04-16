@@ -72,7 +72,7 @@ double control_excite;   // Final control value for excitation laser
 double Kp_inhibit = 9, Ki_inhibit = 8.6, Kd_inhibit = 55;
 double Kp_excite = 10, Ki_excite = 15, Kd_excite = 100;
 double PIDSampleTime = 1;  // in ms
-float Max_inhib = 255;
+float Max_inhibit = 255;
 float Max_excite = 255;
 
 // -----------------------
@@ -137,7 +137,7 @@ void setup() {
     myPID_excite.SetMode(MANUAL);
   }
 
-  myPID_inhibit.SetOutputLimits(0, Max_inhib);
+  myPID_inhibit.SetOutputLimits(0, Max_inhibit);
   myPID_excite.SetOutputLimits(0, Max_excite);
   myPID_inhibit.SetSampleTime(PIDSampleTime);
   myPID_excite.SetSampleTime(PIDSampleTime);
@@ -256,99 +256,76 @@ void loop() {
 
     // If in online tuning mode, expect a tuning command starting with 'T'
     else if (inChar == 'T') {
-      // Expect parameters as comma-separated values:
-      // Format: T,<Kp_inhibit>,<Ki_inhibit>,<Kd_inhibit>,<Kp_excite>,<Ki_excite>,<Kd_excite>
-      while (!Serial.available()) {}  // wait for rest of message
-      String paramStr = Serial.readStringUntil('\n');
-      paramStr.trim();  // Concatenate with initial 'T' removed.
-
-      // Parse parameters
-      int idx1 = paramStr.indexOf(',');
-      int idx2 = paramStr.indexOf(',', idx1 + 1);
-      int idx3 = paramStr.indexOf(',', idx2 + 1);
-      int idx4 = paramStr.indexOf(',', idx3 + 1);
-      int idx5 = paramStr.indexOf(',', idx4 + 1);
-      int idx6 = paramStr.indexOf(',', idx5 + 1);
-      int idx7 = paramStr.indexOf(',', idx6 + 1);
-      if (idx1 > 0 && idx2 > idx1 && idx3 > idx2 && idx4 > idx3 && idx5 > idx4 && idx6 > idx5 && idx7 > idx6) {
-        Kp_inhibit = paramStr.substring(0, idx1).toFloat();
-        Ki_inhibit = paramStr.substring(idx1 + 1, idx2).toFloat();
-        Kd_inhibit = paramStr.substring(idx2 + 1, idx3).toFloat();
-        Kp_excite = paramStr.substring(idx3 + 1, idx4).toFloat();
-        Ki_excite = paramStr.substring(idx4 + 1, idx5).toFloat();
-        Kd_excite = paramStr.substring(idx5 + 1, idx6).toFloat();
-        Max_inhib = paramStr.substring(idx6 + 1, idx7).toFloat();
-        Max_excite = paramStr.substring(idx7 + 1).toFloat();
-
-        // Update PID tunings and store max power values accordingly.
-        myPID_inhibit.SetTunings(Kp_inhibit, Ki_inhibit, Kd_inhibit);
-        myPID_excite.SetTunings(Kp_excite, Ki_excite, Kd_excite);
-        // Update PID max
-        myPID_inhibit.SetOutputLimits(0, Max_inhib);
-        myPID_excite.SetOutputLimits(0, Max_excite);
-
-        Serial.println("Online tuning parameters updated:");
-        Serial.print("Inhib: Kp=");
-        Serial.print(Kp_inhibit);
-        Serial.print(" Ki=");
-        Serial.print(Ki_inhibit);
-        Serial.print(" Kd=");
-        Serial.println(Kd_inhibit);
-        Serial.print("Excite: Kp=");
-        Serial.print(Kp_excite);
-        Serial.print(" Ki=");
-        Serial.print(Ki_excite);
-        Serial.print(" Kd=");
-        Serial.println(Kd_excite);
-        Serial.print("Max Inhib: ");
-        Serial.println(Max_inhib);
-        Serial.print("Max Excite: ");
-        Serial.println(Max_excite);
-
-        // Flush any remaining characters so stray digits aren’t misinterpreted.
-        while (Serial.available()) {
-          Serial.read();
-        }
-      }
-    }
-
-    // Fixed output command
-    else if (inChar == 'F') { 
+      // Wait for the rest of the message
       while (!Serial.available()) {}
       String paramStr = Serial.readStringUntil('\n');
       paramStr.trim();
 
-      // Expected command format: F,<channel>,<value>\n 
-      // where channel is "I" for inhibition or "E" for excitation
-      int idx = paramStr.indexOf(','); // Find the first comma
-      if (idx != -1) {
-        String channel = paramStr.substring(0, idx);
-        float fixedValue = paramStr.substring(idx+1).toFloat();
-        // If fixed value is zero, we interpret that as "disable fixed mode" for that channel.
-        if (channel == "I") {
-          if (fixedValue == 0) {
-            fixInhib = false;
-            Serial.println("Inhibition channel: Fixed mode disabled.");
-          } else {
-            fixInhib = true;
-            constantInhib = fixedValue;
-            myPID_inhibit.SetMode(MANUAL);
-            Serial.print("Inhibition channel: Fixed mode enabled, value = ");
-            Serial.println(constantInhib);
-          }
+      const int NUM_PARAMS = 10;
+      float params[NUM_PARAMS];
+      int tokenIndex = 0;
+      int startIndex = 0;
+      while (tokenIndex < NUM_PARAMS) {
+        int commaIndex = paramStr.indexOf(',', startIndex);
+        if (commaIndex == -1) break;
+        String token = paramStr.substring(startIndex, commaIndex);
+        token.trim();
+        params[tokenIndex] = token.toFloat();
+        tokenIndex++;
+        startIndex = commaIndex + 1;
+      }
+      
+      if (tokenIndex == NUM_PARAMS) {
+        Kp_inhibit = params[0];
+        Ki_inhibit = params[1];
+        Kd_inhibit = params[2];
+        Kp_excite  = params[3];
+        Ki_excite  = params[4];
+        Kd_excite  = params[5];
+        Max_inhibit  = params[6];
+        Max_excite = params[7];
+        int fixFlagInhib = (int)params[8];
+        int fixFlagExcite = (int)params[9];
+        
+        if (fixFlagInhib == 1) {
+          fixInhib = true;
+          constantInhib = Max_inhibit; // Use the provided value as the fixed output
+          myPID_inhibit.SetMode(MANUAL);
+        } else {
+          fixInhib = false;
         }
-        else if (channel == "E") {
-          if (fixedValue == 0) {
-            fixExcite = false;
-            Serial.println("Excitation channel: Fixed mode disabled.");
-          } else {
-            fixExcite = true;
-            constantExcite = fixedValue;
-            myPID_excite.SetMode(MANUAL);
-            Serial.print("Excitation channel: Fixed mode enabled, value = ");
-            Serial.println(constantExcite);
-          }
+        
+        if (fixFlagExcite == 1) {
+          fixExcite = true;
+          constantExcite = Max_excite;
+          myPID_excite.SetMode(MANUAL);
+        } else {
+          fixExcite = false;
         }
+        
+        myPID_inhibit.SetTunings(Kp_inhibit, Ki_inhibit, Kd_inhibit);
+        myPID_excite.SetTunings(Kp_excite, Ki_excite, Kd_excite);
+        myPID_inhibit.SetOutputLimits(0, Max_inhibit);
+        myPID_excite.SetOutputLimits(0, Max_excite);
+        
+        Serial.println("T command processed:");
+        Serial.print("Inhib PID: Kp="); Serial.print(Kp_inhibit);
+        Serial.print(" Ki="); Serial.print(Ki_inhibit);
+        Serial.print(" Kd="); Serial.println(Kd_inhibit);
+        Serial.print("Excite PID: Kp="); Serial.print(Kp_excite);
+        Serial.print(" Ki="); Serial.print(Ki_excite);
+        Serial.print(" Kd="); Serial.println(Kd_excite);
+        Serial.print("Max Inhib: "); Serial.print(Max_inhibit);
+        Serial.print(" Fix flag: "); Serial.println(fixFlagInhib);
+        Serial.print("Max Excite: "); Serial.print(Max_excite);
+        Serial.print(" Fix flag: "); Serial.println(fixFlagExcite);
+      } else {
+        Serial.println("Error: T command expected 10 parameters.");
+      }
+
+      // Flush any remaining characters so stray digits aren’t misinterpreted.
+      while (Serial.available()) {
+        Serial.read();
       }
     }
 
@@ -496,7 +473,7 @@ void loop() {
         if (fixInhib){
           control_inhibit = constantInhib;
         }else{
-          control_inhibit = constrain(output_inhibit, 0, Max_inhib);
+          control_inhibit = constrain(output_inhibit, 0, Max_inhibit);
         }
         if (fixExcite){
           control_excite = constantExcite;
@@ -538,7 +515,7 @@ void loop() {
         Serial.print("  Baseline Std: "); Serial.print(baseline_std, 3);
         Serial.print("  Baseline: "); Serial.print(baseline, 3);
         Serial.print("  Error: "); Serial.print(errorSignal, 3);
-        Serial.print("  Max (inhi): "); Serial.print(Max_inhib, 1);
+        Serial.print("  Max (inhi): "); Serial.print(Max_inhibit, 1);
         Serial.print("  Max (exci): "); Serial.println(Max_excite, 1);
       } else {
         // Send clamp status to GUI

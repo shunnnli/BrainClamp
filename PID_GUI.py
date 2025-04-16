@@ -113,29 +113,33 @@ def toggle_fix(channel):
 # -----------------------
 def set_parameters():
     try:
-        # For channels NOT in fixed mode, get PID tuning parameters normally.
-        if not fix_inhib_var.get():
+        # For Inhibition:
+        if fix_inhib_var.get():
+            kp_inhib = 0.0
+            ki_inhib = 0.0
+            kd_inhib = 0.0
+            max_inhib = float(entry_max_inhib.get())
+            fixFlagInhib = 1
+        else:
             kp_inhib = float(entry_kp_inhib.get())
             ki_inhib = float(entry_ki_inhib.get())
             kd_inhib = float(entry_kd_inhib.get())
             max_inhib = float(entry_max_inhib.get())
-        else:
-            # If fixed mode is enabled, use the fixed value as the output
-            kp_inhib = 0.0  # not used
-            ki_inhib = 0.0  # not used
-            kd_inhib = 0.0  # not used
-            max_inhib = float(entry_max_inhib.get())
-            
-        if not fix_excite_var.get():
-            kp_excite = float(entry_kp_excite.get())
-            ki_excite = float(entry_ki_excite.get())
-            kd_excite = float(entry_kd_excite.get())
-            max_excite = float(entry_max_excite.get())
-        else:
+            fixFlagInhib = 0
+
+        # For Excitation:
+        if fix_excite_var.get():
             kp_excite = 0.0
             ki_excite = 0.0
             kd_excite = 0.0
             max_excite = float(entry_max_excite.get())
+            fixFlagExcite = 1
+        else:
+            kp_excite = float(entry_kp_excite.get())
+            ki_excite = float(entry_ki_excite.get())
+            kd_excite = float(entry_kd_excite.get())
+            max_excite = float(entry_max_excite.get())
+            fixFlagExcite = 0
         
         current_pid.update({
             "Kp_inhib": kp_inhib,
@@ -148,46 +152,12 @@ def set_parameters():
             "Max_excite": max_excite
         })
         
-        # Build and send the T command for PID parameters.
-        # You could choose not to send PID gains for the fixed channels if desired.
-        cmd = "T" + f"{kp_inhib},{ki_inhib},{kd_inhib},{kp_excite},{ki_excite},{kd_excite},{max_inhib},{max_excite},\n"
+        # Build the T command with 10 parameters.
+        cmd = "T" + f"{kp_inhib},{ki_inhib},{kd_inhib},{kp_excite},{ki_excite},{kd_excite},{max_inhib},{max_excite},{fixFlagInhib},{fixFlagExcite},\n"
         send_command(cmd)
         update_current_info()
-        
-        # Now, if fixed mode is enabled for a channel, send a fixed command to disable PID.
-        if fix_inhib_var.get():
-            send_command("F,I," + str(max_inhib) + "\n")
-        else:
-            send_command("F,I,0\n")  # 0 disables fixed mode.
-        if fix_excite_var.get():
-            send_command("F,E," + str(max_excite) + "\n")
-        else:
-            send_command("F,E,0\n")
     except Exception as e:
         log_message("Error reading parameters: " + str(e))
-
-# -----------------------
-# Button to send fix Settings
-# -----------------------
-def set_fixed_settings():
-    # For Inhibition channel:
-    if fix_inhib_var.get():
-        try:
-            fixedVal = float(entry_max_inhib.get())
-            send_command("F,I," + str(fixedVal) + "\n")
-        except Exception as e:
-            log_message("Error sending fixed inhibition value: " + str(e))
-    else:
-        send_command("F,I,0\n")
-    # For Excitation channel (if desired):
-    if fix_excite_var.get():
-        try:
-            fixedVal = float(entry_max_excite.get())
-            send_command("F,E," + str(fixedVal) + "\n")
-        except Exception as e:
-            log_message("Error sending fixed excitation value: " + str(e))
-    else:
-        send_command("F,E,0\n")
 
 # -----------------------
 # Button to send Photometry Settings
@@ -205,7 +175,7 @@ def set_photometry_settings():
         photo_info_label.config(text=(
             "           Photometry Settings\n"
             f"  Low pass filter: 48 Hz\n"
-            f"  Baseline window:   {baselineSampleDuration} ms\n"
+            f"  Baseline sample:   {baselineSampleDuration} ms\n"
             f"  Normalization:     {norm_var.get()}"
         ))
     except Exception as e:
@@ -281,29 +251,37 @@ def trial_callback(study, trial):
     log_message(f"    Excite: {excite}\n")
 
 def run_optimization_custom(trials, measure_duration, kp_inhib_range, ki_inhib_range, kd_inhib_range,
-                            kp_excite_range, ki_excite_range, kd_excite_range, bidirectional, logscale):
+                            kp_excite_range, ki_excite_range, kd_excite_range,
+                            logscale, fixFlagInhib, fixFlagExcite):
     study = optuna.create_study(direction='minimize')
     
     def objective(trial):
         log_message(f"\n========= Starting trial {trial.number} =========")
+        
         kp_inhib = trial.suggest_float("Kp_inhib", kp_inhib_range[0], kp_inhib_range[1], log=logscale)
         ki_inhib = trial.suggest_float("Ki_inhib", ki_inhib_range[0], ki_inhib_range[1], log=logscale)
         kd_inhib = trial.suggest_float("Kd_inhib", kd_inhib_range[0], kd_inhib_range[1], log=logscale)
-        if bidirectional:
-            kp_excite = trial.suggest_float("Kp_excite", kp_excite_range[0], kp_excite_range[1], log=logscale)
-            ki_excite = trial.suggest_float("Ki_excite", ki_excite_range[0], ki_excite_range[1], log=logscale)
-            kd_excite = trial.suggest_float("Kd_excite", kd_excite_range[0], kd_excite_range[1], log=logscale)
-        else:
-            kp_excite = 1.0
-            ki_excite = 1.0
-            kd_excite = 1.0
+        kp_excite = trial.suggest_float("Kp_excite", kp_excite_range[0], kp_excite_range[1], log=logscale)
+        ki_excite = trial.suggest_float("Ki_excite", ki_excite_range[0], ki_excite_range[1], log=logscale)
+        kd_excite = trial.suggest_float("Kd_excite", kd_excite_range[0], kd_excite_range[1], log=logscale)
+
+        if fixFlagInhib:
+            kp_inhib = 0.0
+            ki_inhib = 0.0
+            kd_inhib = 0.0
+
+        if fixFlagExcite:
+            kp_excite = 0.0
+            ki_excite = 0.0
+            kd_excite = 0.0
 
         max_inhib = float(entry_max_inhib.get())
         max_excite = float(entry_max_excite.get())
 
         log_message(f"Testing parameters: Inhib -> Kp:{kp_inhib:.2f}, Ki:{ki_inhib:.2f}, Kd:{kd_inhib:.2f}, max: {max_inhib}; " +
-                    f"Excite -> Kp:{kp_excite:.2f}, Ki:{ki_excite:.2f}, Kd:{kd_excite:.2f}, max: {max_excite}")
-        cmd = "T" + f"{kp_inhib},{ki_inhib},{kd_inhib},{kp_excite},{ki_excite},{kd_excite},{max_inhib},{max_excite},\n"
+                    f"Excite -> Kp:{kp_excite:.2f}, Ki:{ki_excite:.2f}, Kd:{kd_excite:.2f}, max: {max_excite}, " +
+                    f"FixInhib:{fixFlagInhib}, FixExcite:{fixFlagExcite}")
+        cmd = "T" + f"{kp_inhib},{ki_inhib},{kd_inhib},{kp_excite},{ki_excite},{kd_excite},{max_inhib},{max_excite},{fixFlagInhib},{fixFlagExcite},\n"
         send_command(cmd)
         time.sleep(2)
         
@@ -317,7 +295,7 @@ def run_optimization_custom(trials, measure_duration, kp_inhib_range, ki_inhib_r
             if ser.in_waiting:
                 try:
                     line = ser.readline().decode().strip()
-                    error_val = float(line)
+                    error_val = float(line) * 100
                     error_sum += abs(error_val)
                     count += 1
                 except:
@@ -435,7 +413,7 @@ def open_optimization_popup():
     popup.title("Optimization Settings")
     
     # Configure popup grid columns for equal weight
-    for col in range(6):
+    for col in range(8):
         popup.grid_columnconfigure(col, weight=1)
     
     # Row 0: Number of Trials and Measurement Duration
@@ -449,20 +427,25 @@ def open_optimization_popup():
     duration_entry.insert(0, "15")
     duration_entry.grid(row=0, column=3, sticky="w", padx=5, pady=5)
     
-    # Row 1: Bidirectional and Log Scale checkboxes
-    bidirectional_var = tk.BooleanVar(value=True)
-    tk.Label(popup, text="Bidirectional Tuning:").grid(row=1, column=0, sticky="e", padx=5, pady=5)
-    bidirectional_cb = tk.Checkbutton(popup, variable=bidirectional_var)
-    bidirectional_cb.grid(row=1, column=1, sticky="w", padx=5, pady=5)
-    
+    # Row 1: Fix PID and Log Scale checkboxes
     logscale_var = tk.BooleanVar(value=True)
-    tk.Label(popup, text="Log Scale:").grid(row=1, column=2, sticky="e", padx=5, pady=5)
+    tk.Label(popup, text="Log Scale:").grid(row=1, column=0, sticky="e", padx=5, pady=5)
     logscale_cb = tk.Checkbutton(popup, variable=logscale_var)
-    logscale_cb.grid(row=1, column=3, sticky="w", padx=5, pady=5)
+    logscale_cb.grid(row=1, column=1, sticky="w", padx=5, pady=5)
+
+    fix_inhib_opt_var = tk.BooleanVar(value=False)
+    tk.Label(popup, text="Fix Inhib:").grid(row=1, column=2, sticky="e", padx=5, pady=5)
+    fix_inhib_opt_cb = tk.Checkbutton(popup, variable=fix_inhib_opt_var)
+    fix_inhib_opt_cb.grid(row=1, column=3, sticky="w", padx=5, pady=5)
+    
+    fix_excite_opt_var = tk.BooleanVar(value=False)
+    tk.Label(popup, text="Fix Excite:").grid(row=1, column=4, sticky="e", padx=5, pady=5)
+    fix_excite_opt_cb = tk.Checkbutton(popup, variable=fix_excite_opt_var)
+    fix_excite_opt_cb.grid(row=1, column=5, sticky="w", padx=5, pady=5)
     
     # Row 2: Container for Inhibition and Excitation Parameter Frames
     container = tk.Frame(popup)
-    container.grid(row=2, column=0, columnspan=6, sticky="nsew", padx=5, pady=5)
+    container.grid(row=2, column=0, columnspan=7, sticky="nsew", padx=5, pady=5)
     container.grid_columnconfigure(0, weight=1)
     container.grid_columnconfigure(1, weight=1)
     
@@ -495,11 +478,6 @@ def open_optimization_popup():
     kd_inhib_upper_entry = tk.Entry(inhib_frame, width=5)
     kd_inhib_upper_entry.insert(0, "200")
     kd_inhib_upper_entry.grid(row=2, column=3, padx=5, pady=5)
-    # Max row
-    # tk.Label(inhib_frame, text="Max PWM freq:").grid(row=3, column=0, padx=5, pady=5)
-    # max_inhib_entry = tk.Entry(inhib_frame, width=5)
-    # max_inhib_entry.insert(0, "255")
-    # max_inhib_entry.grid(row=3, column=1, padx=5, pady=5)
     
     excite_frame = tk.LabelFrame(container, text="Excitation PID Parameters", labelanchor="n")
     excite_frame.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
@@ -530,11 +508,6 @@ def open_optimization_popup():
     kd_excite_upper_entry = tk.Entry(excite_frame, width=5)
     kd_excite_upper_entry.insert(0, "200")
     kd_excite_upper_entry.grid(row=2, column=3, padx=5, pady=5)
-    # Max row
-    # tk.Label(excite_frame, text="Max PWM freq:").grid(row=3, column=0, padx=5, pady=5)
-    # max_excite_entry = tk.Entry(excite_frame, width=5)
-    # max_excite_entry.insert(0, "255")
-    # max_excite_entry.grid(row=3, column=1, padx=5, pady=5)
     
     # Row 3: OK and Cancel buttons side-by-side
     buttons_frame = tk.Frame(popup)
@@ -549,18 +522,19 @@ def open_optimization_popup():
             kp_excite_range = (float(kp_excite_lower_entry.get()), float(kp_excite_upper_entry.get()))
             ki_excite_range = (float(ki_excite_lower_entry.get()), float(ki_excite_upper_entry.get()))
             kd_excite_range = (float(kd_excite_lower_entry.get()), float(kd_excite_upper_entry.get()))
-            # max_inhib = float(max_inhib_entry.get())
-            # max_excite = float(max_excite_entry.get())
-            bidirectional = bidirectional_var.get()
             logscale = logscale_var.get()
+            fixFlagInhib = 1 if fix_inhib_opt_var.get() else 0
+            fixFlagExcite = 1 if fix_excite_opt_var.get() else 0
         except Exception as e:
             log_message("Error reading optimization settings: " + str(e))
             return
         popup.destroy()
+
+        # Pass the new fixed flags to run_optimization_custom:
         threading.Thread(target=run_optimization_custom, args=(trials, duration, 
                                                                 kp_inhib_range, ki_inhib_range, kd_inhib_range, 
                                                                 kp_excite_range, ki_excite_range, kd_excite_range,
-                                                                bidirectional, logscale),
+                                                                logscale, fixFlagInhib, fixFlagExcite),
                          daemon=True).start()
     
     def on_cancel():
@@ -624,8 +598,9 @@ progress_label.grid(row=2, column=0, columnspan=n_col, padx=5, pady=5)
 # PID inhibit params
 # Fix settings for inhibition
 fix_inhib_var = tk.BooleanVar(value=False)
-fix_inhib_checkbox = tk.Checkbutton(root, text="Fix inhibition", variable=fix_inhib_var)
-fix_inhib_checkbox.grid(row=3, column=0, padx=5, pady=5)
+fix_inhib_checkbox = tk.Checkbutton(root, text="Fix inhibition", variable=fix_inhib_var,
+                                    command=lambda: toggle_fix("inhib"))
+fix_inhib_checkbox.grid(row=3, column=1, padx=5, pady=5)
 tk.Label(root, text="Kp_inhib:").grid(row=4, column=0, padx=5, pady=5)
 entry_kp_inhib = tk.Entry(root)
 entry_kp_inhib.grid(row=4, column=1, padx=5, pady=5)
@@ -642,8 +617,9 @@ entry_max_inhib.grid(row=7, column=1, padx=5, pady=5)
 # PID excite params
 # Fix setting for excitation
 fix_excite_var = tk.BooleanVar(value=False)
-fix_excite_checkbox = tk.Checkbutton(root, text="Fix excitation", variable=fix_excite_var)
-fix_excite_checkbox.grid(row=3, column=2, padx=5, pady=5)
+fix_excite_checkbox = tk.Checkbutton(root, text="Fix excitation", variable=fix_excite_var,
+                                    command=lambda: toggle_fix("excite"))
+fix_excite_checkbox.grid(row=3, column=3, padx=5, pady=5)
 tk.Label(root, text="Kp_excite:").grid(row=4, column=2, padx=5, pady=5)
 entry_kp_excite = tk.Entry(root)
 entry_kp_excite.grid(row=4, column=3, padx=5, pady=5)
@@ -658,12 +634,12 @@ entry_max_excite = tk.Entry(root)
 entry_max_excite.grid(row=7, column=3, padx=5, pady=5)
 
 # Photometry processing params
-tk.Label(root, text="Low pass filter (Hz):").grid(row=3, column=4, padx=5, pady=5)
+tk.Label(root, text="Low pass filter (Hz):").grid(row=4, column=4, padx=5, pady=5)
 entry_photometryWindow = tk.Entry(root)
 entry_photometryWindow.insert(0, "48")
 entry_photometryWindow.config(state="disabled")
 entry_photometryWindow.grid(row=4, column=5, padx=5, pady=5)
-tk.Label(root, text="Baseline sample duration (ms):").grid(row=4, column=4, padx=5, pady=5)
+tk.Label(root, text="Baseline sample duration (ms):").grid(row=5, column=4, padx=5, pady=5)
 entry_baselineSample = tk.Entry(root)
 entry_baselineSample.insert(0, "3000")  # default 3000 ms
 entry_baselineSample.grid(row=5, column=5, padx=5, pady=5)
@@ -684,7 +660,7 @@ set_photo_button.grid(row=8, column=4, columnspan=n_col, padx=5, pady=5)
 photo_info_label_text =(
     "           Photometry Settings\n"
     f"  Low pass filter: 48 Hz\n"
-    f"  Baseline window:   {float(entry_baselineSample.get())} ms\n"
+    f"  Baseline sample:   {float(entry_baselineSample.get())} ms\n"
     f"  Normalization:     {norm_var.get()}"
 )
 photo_info_label = tk.Label(root, text=photo_info_label_text, justify=tk.LEFT)

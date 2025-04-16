@@ -114,6 +114,29 @@ def set_parameters():
         log_message("Error reading parameters: " + str(e))
 
 # -----------------------
+# Button to send fix Settings
+# -----------------------
+def set_fixed_settings():
+    # For Inhibition channel:
+    if fix_inhib_var.get():
+        try:
+            fixedVal = float(entry_fix_inhib.get())
+            send_command("F,I," + str(fixedVal) + "\n")
+        except Exception as e:
+            log_message("Error sending fixed inhibition value: " + str(e))
+    else:
+        send_command("F,I,0\n")
+    # For Excitation channel (if desired):
+    if fix_excite_var.get():
+        try:
+            fixedVal = float(entry_fix_excite.get())
+            send_command("F,E," + str(fixedVal) + "\n")
+        except Exception as e:
+            log_message("Error sending fixed excitation value: " + str(e))
+    else:
+        send_command("F,E,0\n")
+
+# -----------------------
 # Button to send Photometry Settings
 # -----------------------
 def set_photometry_settings():
@@ -122,8 +145,8 @@ def set_photometry_settings():
         # Map the normalization string to an integer code:
         mapping = {"RAW": 0, "ZSCORE": 1, "BASELINE": 2, "STD": 3}
         normalizationMethod = mapping[norm_var.get()]
-        # Build a command: I,<baselineSampleDuration>,<normalizationMethod>\n
-        cmd = "I" + f"{baselineSampleDuration},{normalizationMethod},\n"
+        # Build a command: P<baselineSampleDuration>,<normalizationMethod>\n
+        cmd = "P" + f"{baselineSampleDuration},{normalizationMethod},\n"
         send_command(cmd)
         log_message("Photometry settings updated.")
         photo_info_label.config(text=(
@@ -596,7 +619,7 @@ info_label = tk.Label(root, text="PID Parameters: Not Set", justify=tk.LEFT)
 info_label.grid(row=8, column=0, columnspan=4, padx=5, pady=5)
 
 set_photo_button = tk.Button(root, text="Set Photometry Settings", command=set_photometry_settings)
-set_photo_button.grid(row=7, column=4, columnspan=n_col, padx=5, pady=5)
+set_photo_button.grid(row=6, column=4, columnspan=n_col, padx=5, pady=5)
 photo_info_label_text =(
     "           Photometry Settings\n"
     f"  Low pass filter: 48 Hz\n"
@@ -604,7 +627,26 @@ photo_info_label_text =(
     f"  Normalization:     {norm_var.get()}"
 )
 photo_info_label = tk.Label(root, text=photo_info_label_text, justify=tk.LEFT)
-photo_info_label.grid(row=8, column=4, columnspan=n_col, padx=5, pady=5)
+photo_info_label.grid(row=7, column=4, columnspan=n_col, padx=5, pady=5)
+
+# Fix settings for inhibition
+fix_inhib_var = tk.BooleanVar(value=False)
+fix_inhib_checkbox = tk.Checkbutton(root, text="Fix inhibition", variable=fix_inhib_var)
+fix_inhib_checkbox.grid(row=8, column=4, padx=5, pady=5)
+entry_fix_inhib = tk.Entry(root, width=5)
+entry_fix_inhib.insert(0, "0")  # 0 means no fixed output by default
+entry_fix_inhib.grid(row=8, column=5, padx=5, pady=5)
+
+# Fix setting for excitation
+fix_excite_var = tk.BooleanVar(value=False)
+fix_excite_checkbox = tk.Checkbutton(root, text="Fix excitation", variable=fix_excite_var)
+fix_excite_checkbox.grid(row=7, column=6, padx=5, pady=5)
+entry_fix_excite = tk.Entry(root, width=5)
+entry_fix_excite.insert(0, "0")
+entry_fix_excite.grid(row=7, column=7, padx=5, pady=5)
+
+fix_button = tk.Button(root, text="Apply Fixed Output", command=set_fixed_settings)
+fix_button.grid(row=7, column=8, padx=5, pady=5)
 
 opt_text_box = tk.Text(root, height=10, width=170)
 opt_text_box.grid(row=9, column=0, columnspan=n_col, padx=5, pady=5, sticky='nsew')

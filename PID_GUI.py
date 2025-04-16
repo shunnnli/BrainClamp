@@ -10,15 +10,16 @@ import optuna
 start_time = time.time()
 connected = False
 lastFlushTime = time.time()
+wait_time = 30
 
-while time.time() - start_time <= 10:
+while time.time() - start_time <= wait_time:
     try:
         ser = serial.Serial('COM5', 115200, timeout=1)
         print("\nSerial connection opened")
         connected = True
         break
     except Exception as e:
-        countdown = int(10 - (time.time() - start_time))
+        countdown = int(wait_time - (time.time() - start_time))
         msg = f"Trying to connect to Arduino... {countdown} seconds remaining"
         print(msg.ljust(70), end="\r")
         
@@ -117,19 +118,18 @@ def set_parameters():
 # -----------------------
 def set_photometry_settings():
     try:
-        photometryWindow = float(entry_photometryWindow.get())
-        baselineWindowDuration = float(entry_baselineWindow.get())
+        baselineSampleDuration = float(entry_baselineSample.get())
         # Map the normalization string to an integer code:
         mapping = {"RAW": 0, "ZSCORE": 1, "BASELINE": 2, "STD": 3}
         normalizationMethod = mapping[norm_var.get()]
-        # Build a command: U,<photometryWindow>,<baselineWindowDuration>,<normalizationMethod>\n
-        cmd = "I" + f"{photometryWindow},{baselineWindowDuration},{normalizationMethod}\n"
+        # Build a command: I,<baselineSampleDuration>,<normalizationMethod>\n
+        cmd = "I" + f"{baselineSampleDuration},{normalizationMethod},\n"
         send_command(cmd)
         log_message("Photometry settings updated.")
         photo_info_label.config(text=(
             "           Photometry Settings\n"
-            f"  Moving avg window: {photometryWindow} ms\n"
-            f"  Baseline window:   {baselineWindowDuration} ms\n"
+            f"  Low pass filter: 48 Hz\n"
+            f"  Baseline window:   {baselineSampleDuration} ms\n"
             f"  Normalization:     {norm_var.get()}"
         ))
     except Exception as e:
@@ -574,14 +574,15 @@ entry_max_excite = tk.Entry(root)
 entry_max_excite.grid(row=6, column=3, padx=5, pady=5)
 
 # Photometry processing params
-tk.Label(root, text="Moving avg window (ms):").grid(row=3, column=4, padx=5, pady=5)
+tk.Label(root, text="Low pass filter (Hz):").grid(row=3, column=4, padx=5, pady=5)
 entry_photometryWindow = tk.Entry(root)
-entry_photometryWindow.insert(0, "30")  # default 30 ms
+entry_photometryWindow.insert(0, "48")
+entry_photometryWindow.config(state="disabled")
 entry_photometryWindow.grid(row=3, column=5, padx=5, pady=5)
-tk.Label(root, text="Baseline window (ms):").grid(row=4, column=4, padx=5, pady=5)
-entry_baselineWindow = tk.Entry(root)
-entry_baselineWindow.insert(0, "3000")  # default 3000 ms
-entry_baselineWindow.grid(row=4, column=5, padx=5, pady=5)
+tk.Label(root, text="Baseline sample duration (ms):").grid(row=4, column=4, padx=5, pady=5)
+entry_baselineSample = tk.Entry(root)
+entry_baselineSample.insert(0, "3000")  # default 3000 ms
+entry_baselineSample.grid(row=4, column=5, padx=5, pady=5)
 tk.Label(root, text="Normalization method:").grid(row=5, column=4, padx=5, pady=5)
 norm_options = ["RAW", "ZSCORE", "BASELINE", "STD"]
 norm_var = tk.StringVar(value=norm_options[1])  # default "ZSCORE"
@@ -598,8 +599,8 @@ set_photo_button = tk.Button(root, text="Set Photometry Settings", command=set_p
 set_photo_button.grid(row=7, column=4, columnspan=n_col, padx=5, pady=5)
 photo_info_label_text =(
     "           Photometry Settings\n"
-    f"  Moving avg window: {float(entry_photometryWindow.get())} ms\n"
-    f"  Baseline window:   {float(entry_baselineWindow.get())} ms\n"
+    f"  Low pass filter: 48 Hz\n"
+    f"  Baseline window:   {float(entry_baselineSample.get())} ms\n"
     f"  Normalization:     {norm_var.get()}"
 )
 photo_info_label = tk.Label(root, text=photo_info_label_text, justify=tk.LEFT)

@@ -7,7 +7,6 @@
 #include <DataTomeAnalysis.h>
 #include <math.h>
 #include <Wire.h>
-#include <Adafruit_MCP4725.h>
 
 // -----------------------
 // Global Flags & Modes
@@ -23,27 +22,16 @@ unsigned long lastClampStatusTime = 0;
 // Photometry & Baseline Params
 //
 // -----------------------
-// For moving average
-double PhotometryWindow = 30.0;          // in ms
+// For baseline sample duration
 double baselineWindowDuration = 3000.0;  // in ms
-const double ArduinoFrequency = 8563;    // Arduino sampling frequency
-int windowSize = (int)(ArduinoFrequency * (PhotometryWindow / 1000.0));
-int sampleBuffer[256];
-int index = 0;
-unsigned long runningSum = 0;
-int sampleCount = 0;
-
-// For binned average
-double PhotometrySum = 0;
-double rawSignal = 0;
-double processedSignal = 0;
-
+double signal = 0;
 unsigned long BaselineSumInWindow = 0;
 unsigned long nBaselineSample = 1;
 double BaselineAvgInWindow;
 double baseline;
 double baseline_std;
 double zscore;
+//const double ArduinoFrequency = 8563;    // Arduino sampling frequency
 
 // -----------------------
 // Define normalization methods
@@ -97,9 +85,6 @@ const byte TargetPin = 3;           // (Unused in this version)
 const byte OutputPin_inhibit = A0;
 const byte ClampOnPin = 8;  // Turn on clamp or not (external control for trial type specific clamping)
 
-// Create an MCP4725 DAC object
-Adafruit_MCP4725 dac;
-
 // -----------------------
 // Timing & State Variables
 // -----------------------
@@ -130,7 +115,7 @@ void setup() {
   digitalWrite(A3, HIGH);  //Set A3 as Vcc
 
   // Initial sensor read & baseline setup
-  rawSignal = analogRead(InputPin);
+  signal = analogRead(InputPin);
   state = Idle;
 
   // Turn PIDs OFF initially (manual mode)
@@ -158,12 +143,6 @@ void setup() {
   Serial.println("---------------------PhotometryClamp---------------------");
   Serial.println("Toggles: online tuning: 't'");
   Serial.println("Command: start clamping: 8  | Stop clamping: 9");
-  // Initialize the MCP4725. If initialization fails, halt the program.
-  if (!dac.begin(0x60)) {
-    Serial.println("Failed to initialize MCP4725 DAC!");
-  } else {
-    Serial.println("MCP4725 DAC initialized.");
-  }
   Serial.println("---------------------------------------------------------");
 }
 
@@ -247,32 +226,17 @@ void loop() {
       String paramStr = Serial.readStringUntil('\n');
       paramStr.trim();
 
-      // The expected format: <photometryWindow>,<baselineWindowDuration>,<normalizationMethod>
+      // The expected format: <baselineWindowDuration>,<normalizationMethod>
       int idx1 = paramStr.indexOf(',');
-      int idx2 = paramStr.indexOf(',', idx1 + 1);
-      if (idx1 != -1 && idx2 != -1) {
-        double newPhotometryWindow = paramStr.substring(0, idx1).toFloat();
-        double newBaselineWindowDuration = paramStr.substring(idx1 + 1, idx2).toFloat();
-        int normMethod = paramStr.substring(idx2 + 1).toInt();  // 0=RAW, 1=ZSCORE, 2=BASELINE, 3=STD
+      if (idx1 != -1) {
+        double newBaselineWindowDuration = paramStr.substring(0, idx1).toFloat();
+        int normMethod = paramStr.substring(idx1 + 1).toInt();  // 0=RAW, 1=ZSCORE, 2=BASELINE, 3=STD
 
-        PhotometryWindow = newPhotometryWindow;
         baselineWindowDuration = newBaselineWindowDuration;
         normalizeMethod = (NormalizeMethod)normMethod;
 
-        windowSize = (int)(ArduinoFrequency * (PhotometryWindow / 1000.0));
-        // Optionally, clear your sampleBuffer and reset sampleCount, runningSum, index.
-        sampleCount = 0;
-        runningSum = 0;
-        index = 0;
-        // You might zero the sampleBuffer if desired:
-        for (int i = 0; i < windowSize && i < 256; i++) {
-          sampleBuffer[i] = 0;
-        }
-
         Serial.println("Photometry settings updated:");
-        Serial.print("Moving Average Window (ms): ");
-        Serial.println(PhotometryWindow);
-        Serial.print("Baseline Duration (ms): ");
+        Serial.print("Baseline sample duration (ms): ");
         Serial.println(baselineWindowDuration);
         Serial.print("Normalization Method: ");
         Serial.println(normMethod);
@@ -404,12 +368,11 @@ void loop() {
         Serial.print(millis() - LastSampleTime, 3);
         LastSampleTime = millis();
       }
-      rawSignal = analogRead(InputPin);
-      processedSignal = updateMovingAverage(rawSignal);
+      signal = analogRead(InputPin);
       state = Control;
 
       // Add baseline sample to baselineWindow buffer
-      if (millis() - Start >= 3000) {
+      if (millis() - Start >= baselineWindowDuration) {
         BaselineAvgInWindow = BaselineSumInWindow / (double)nBaselineSample;
         baselineWindow.push(BaselineAvgInWindow);
         // Serial.println(BaselineAvgInWindow);
@@ -418,7 +381,7 @@ void loop() {
         Start = millis();
       } else {
         // Accumulate data of baseline sample (3s)
-        BaselineSumInWindow += rawSignal;
+        BaselineSumInWindow += signal;
         nBaselineSample++;
       }
       break;
@@ -429,10 +392,10 @@ void loop() {
       switch (normalizeMethod) {
         case RAW:
           if (baselineWindow.count() <= 1) {
-            input = rawSignal;
-            target = rawSignal;
+            input = signal;
+            target = signal;
           } else {
-            input = rawSignal;
+            input = signal;
             target = baselineWindow.median();
           }
           break;
@@ -444,7 +407,7 @@ void loop() {
             target = 1;
           } else {
             baseline = baselineWindow.median();
-            input = processedSignal / baseline;
+            input = signal / baseline;
             target = 1;
           }
           break;
@@ -457,7 +420,7 @@ void loop() {
           } else {
             baseline = baselineWindow.median();
             baseline_std = baselineWindow.std();
-            zscore = (baseline_std > 0) ? ((processedSignal - baseline) / baseline_std) : 0;
+            zscore = (baseline_std > 0) ? ((signal - baseline) / baseline_std) : 0;
             input = zscore;
             target = 0;
           }
@@ -466,12 +429,12 @@ void loop() {
         case STD:
           // Normalized by std
           if (baselineWindow.count() <= 1) {
-            input = processedSignal;
-            target = processedSignal;
+            input = signal;
+            target = signal;
           } else {
             baseline = baselineWindow.median();
             baseline_std = baselineWindow.std();
-            input = (baseline_std > 0) ? (processedSignal / baseline_std) : baseline;
+            input = (baseline_std > 0) ? (signal / baseline_std) : baseline;
             target = (baseline_std > 0) ? (baseline / baseline_std) : baseline;
           }
           break;
@@ -516,7 +479,7 @@ void loop() {
         // Print real-time values.
         double errorSignal = (target - input);
         Serial.print("  Target: "); Serial.print(target, 3);
-        Serial.print("  Signal: "); Serial.print(processedSignal,3);
+        Serial.print("  Signal: "); Serial.print(signal,3);
         Serial.print("  Input: "); Serial.print(input, 3);
         Serial.print("  Baseline Std: "); Serial.print(baseline_std, 3);
         Serial.print("  Baseline: "); Serial.print(baseline, 3);
@@ -529,37 +492,7 @@ void loop() {
         Serial.println(ClampON);
       }
 
-      // Send control output to DAC
-      // int scaled_OutputInhibit = map(255-control_inhibit, 0, 255, 0, 4095);
-      // dac.setVoltage(scaled_OutputInhibit, false);  // false: wait for the write to finish
-      // analogWrite(OutputPin_inhibit, output_inhibit);
-
       state = Photometry;  // Return to photometry for next sample
       break;
   }
-}
-
-// -----------------------
-// Moving average methods
-// Function to update the moving average with a new sample
-// Returns the current moving average
-// -----------------------
-double updateMovingAverage(double newSample) {
-  // Subtract the oldest sample from the running sum
-  runningSum -= sampleBuffer[index];
-
-  // Insert the new sample into the buffer and add it to the running sum
-  sampleBuffer[index] = newSample;
-  runningSum += newSample;
-
-  // Move to the next index (wrap around using modulo)
-  index = (index + 1) % windowSize;
-
-  // Keep track of the number of samples (only until the buffer is full)
-  if (sampleCount < windowSize) {
-    sampleCount++;
-  }
-
-  // Return the average
-  return runningSum / (double)sampleCount;
 }

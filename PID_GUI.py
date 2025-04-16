@@ -82,19 +82,60 @@ def toggle_debug():
     debugModeGUI = debug_var.get()
     send_command("D1\n" if debugModeGUI else "D0\n")  # Still send command to Arduino if desired
 
+def toggle_fix(channel):
+    # This function disables (or enables) all PID text boxes for a channel if fix is checked.
+    if channel == "inhib":
+        if fix_inhib_var.get():
+            # Disable inhibition PID tuning entries
+            entry_kp_inhib.config(state="disabled")
+            entry_ki_inhib.config(state="disabled")
+            entry_kd_inhib.config(state="disabled")
+            entry_max_inhib.config(state="normal")
+        else:
+            entry_kp_inhib.config(state="normal")
+            entry_ki_inhib.config(state="normal")
+            entry_kd_inhib.config(state="normal")
+            entry_max_inhib.config(state="normal")
+    elif channel == "excite":
+        if fix_excite_var.get():
+            entry_kp_excite.config(state="disabled")
+            entry_ki_excite.config(state="disabled")
+            entry_kd_excite.config(state="disabled")
+            entry_max_excite.config(state="normal")
+        else:
+            entry_kp_excite.config(state="normal")
+            entry_ki_excite.config(state="normal")
+            entry_kd_excite.config(state="normal")
+            entry_max_excite.config(state="normal")
+
 # -----------------------
 # Button to send PID Settings
 # -----------------------
 def set_parameters():
     try:
-        kp_inhib = float(entry_kp_inhib.get())
-        ki_inhib = float(entry_ki_inhib.get())
-        kd_inhib = float(entry_kd_inhib.get())
-        kp_excite = float(entry_kp_excite.get())
-        ki_excite = float(entry_ki_excite.get())
-        kd_excite = float(entry_kd_excite.get())
-        max_inhib = float(entry_max_inhib.get())
-        max_excite = float(entry_max_excite.get())
+        # For channels NOT in fixed mode, get PID tuning parameters normally.
+        if not fix_inhib_var.get():
+            kp_inhib = float(entry_kp_inhib.get())
+            ki_inhib = float(entry_ki_inhib.get())
+            kd_inhib = float(entry_kd_inhib.get())
+            max_inhib = float(entry_max_inhib.get())
+        else:
+            # If fixed mode is enabled, use the fixed value as the output
+            kp_inhib = 0.0  # not used
+            ki_inhib = 0.0  # not used
+            kd_inhib = 0.0  # not used
+            max_inhib = float(entry_max_inhib.get())
+            
+        if not fix_excite_var.get():
+            kp_excite = float(entry_kp_excite.get())
+            ki_excite = float(entry_ki_excite.get())
+            kd_excite = float(entry_kd_excite.get())
+            max_excite = float(entry_max_excite.get())
+        else:
+            kp_excite = 0.0
+            ki_excite = 0.0
+            kd_excite = 0.0
+            max_excite = float(entry_max_excite.get())
         
         current_pid.update({
             "Kp_inhib": kp_inhib,
@@ -107,9 +148,21 @@ def set_parameters():
             "Max_excite": max_excite
         })
         
+        # Build and send the T command for PID parameters.
+        # You could choose not to send PID gains for the fixed channels if desired.
         cmd = "T" + f"{kp_inhib},{ki_inhib},{kd_inhib},{kp_excite},{ki_excite},{kd_excite},{max_inhib},{max_excite},\n"
         send_command(cmd)
         update_current_info()
+        
+        # Now, if fixed mode is enabled for a channel, send a fixed command to disable PID.
+        if fix_inhib_var.get():
+            send_command("F,I," + str(max_inhib) + "\n")
+        else:
+            send_command("F,I,0\n")  # 0 disables fixed mode.
+        if fix_excite_var.get():
+            send_command("F,E," + str(max_excite) + "\n")
+        else:
+            send_command("F,E,0\n")
     except Exception as e:
         log_message("Error reading parameters: " + str(e))
 
@@ -120,7 +173,7 @@ def set_fixed_settings():
     # For Inhibition channel:
     if fix_inhib_var.get():
         try:
-            fixedVal = float(entry_fix_inhib.get())
+            fixedVal = float(entry_max_inhib.get())
             send_command("F,I," + str(fixedVal) + "\n")
         except Exception as e:
             log_message("Error sending fixed inhibition value: " + str(e))
@@ -129,7 +182,7 @@ def set_fixed_settings():
     # For Excitation channel (if desired):
     if fix_excite_var.get():
         try:
-            fixedVal = float(entry_fix_excite.get())
+            fixedVal = float(entry_max_excite.get())
             send_command("F,E," + str(fixedVal) + "\n")
         except Exception as e:
             log_message("Error sending fixed excitation value: " + str(e))
@@ -539,7 +592,7 @@ def update_current_info():
 root = tk.Tk()
 root.title("PID Controller GUI")
 
-root.grid_rowconfigure(9, weight=1)
+root.grid_rowconfigure(10, weight=1)
 n_col = 6
 for col in range(n_col):
     root.grid_columnconfigure(col, weight=1)
@@ -569,57 +622,65 @@ progress_label = tk.Label(root, text="", font=("Helvetica", 10))
 progress_label.grid(row=2, column=0, columnspan=n_col, padx=5, pady=5)
 
 # PID inhibit params
-tk.Label(root, text="Kp_inhib:").grid(row=3, column=0, padx=5, pady=5)
+# Fix settings for inhibition
+fix_inhib_var = tk.BooleanVar(value=False)
+fix_inhib_checkbox = tk.Checkbutton(root, text="Fix inhibition", variable=fix_inhib_var)
+fix_inhib_checkbox.grid(row=3, column=0, padx=5, pady=5)
+tk.Label(root, text="Kp_inhib:").grid(row=4, column=0, padx=5, pady=5)
 entry_kp_inhib = tk.Entry(root)
-entry_kp_inhib.grid(row=3, column=1, padx=5, pady=5)
-tk.Label(root, text="Ki_inhib:").grid(row=4, column=0, padx=5, pady=5)
+entry_kp_inhib.grid(row=4, column=1, padx=5, pady=5)
+tk.Label(root, text="Ki_inhib:").grid(row=5, column=0, padx=5, pady=5)
 entry_ki_inhib = tk.Entry(root)
-entry_ki_inhib.grid(row=4, column=1, padx=5, pady=5)
-tk.Label(root, text="Kd_inhib:").grid(row=5, column=0, padx=5, pady=5)
+entry_ki_inhib.grid(row=5, column=1, padx=5, pady=5)
+tk.Label(root, text="Kd_inhib:").grid(row=6, column=0, padx=5, pady=5)
 entry_kd_inhib = tk.Entry(root)
-entry_kd_inhib.grid(row=5, column=1, padx=5, pady=5)
-tk.Label(root, text="Max power (inhib):").grid(row=6, column=0, padx=5, pady=5)
+entry_kd_inhib.grid(row=6, column=1, padx=5, pady=5)
+tk.Label(root, text="Max power (inhib):").grid(row=7, column=0, padx=5, pady=5)
 entry_max_inhib = tk.Entry(root)
-entry_max_inhib.grid(row=6, column=1, padx=5, pady=5)
+entry_max_inhib.grid(row=7, column=1, padx=5, pady=5)
 
 # PID excite params
-tk.Label(root, text="Kp_excite:").grid(row=3, column=2, padx=5, pady=5)
+# Fix setting for excitation
+fix_excite_var = tk.BooleanVar(value=False)
+fix_excite_checkbox = tk.Checkbutton(root, text="Fix excitation", variable=fix_excite_var)
+fix_excite_checkbox.grid(row=3, column=2, padx=5, pady=5)
+tk.Label(root, text="Kp_excite:").grid(row=4, column=2, padx=5, pady=5)
 entry_kp_excite = tk.Entry(root)
-entry_kp_excite.grid(row=3, column=3, padx=5, pady=5)
-tk.Label(root, text="Ki_excite:").grid(row=4, column=2, padx=5, pady=5)
+entry_kp_excite.grid(row=4, column=3, padx=5, pady=5)
+tk.Label(root, text="Ki_excite:").grid(row=5, column=2, padx=5, pady=5)
 entry_ki_excite = tk.Entry(root)
-entry_ki_excite.grid(row=4, column=3, padx=5, pady=5)
-tk.Label(root, text="Kd_excite:").grid(row=5, column=2, padx=5, pady=5)
+entry_ki_excite.grid(row=5, column=3, padx=5, pady=5)
+tk.Label(root, text="Kd_excite:").grid(row=6, column=2, padx=5, pady=5)
 entry_kd_excite = tk.Entry(root)
-entry_kd_excite.grid(row=5, column=3, padx=5, pady=5)
-tk.Label(root, text="Max power (excite):").grid(row=6, column=2, padx=5, pady=5)
+entry_kd_excite.grid(row=6, column=3, padx=5, pady=5)
+tk.Label(root, text="Max power (excite):").grid(row=7, column=2, padx=5, pady=5)
 entry_max_excite = tk.Entry(root)
-entry_max_excite.grid(row=6, column=3, padx=5, pady=5)
+entry_max_excite.grid(row=7, column=3, padx=5, pady=5)
 
 # Photometry processing params
 tk.Label(root, text="Low pass filter (Hz):").grid(row=3, column=4, padx=5, pady=5)
 entry_photometryWindow = tk.Entry(root)
 entry_photometryWindow.insert(0, "48")
 entry_photometryWindow.config(state="disabled")
-entry_photometryWindow.grid(row=3, column=5, padx=5, pady=5)
+entry_photometryWindow.grid(row=4, column=5, padx=5, pady=5)
 tk.Label(root, text="Baseline sample duration (ms):").grid(row=4, column=4, padx=5, pady=5)
 entry_baselineSample = tk.Entry(root)
 entry_baselineSample.insert(0, "3000")  # default 3000 ms
-entry_baselineSample.grid(row=4, column=5, padx=5, pady=5)
-tk.Label(root, text="Normalization method:").grid(row=5, column=4, padx=5, pady=5)
+entry_baselineSample.grid(row=5, column=5, padx=5, pady=5)
+tk.Label(root, text="Normalization method:").grid(row=6, column=4, padx=5, pady=5)
 norm_options = ["RAW", "ZSCORE", "BASELINE", "STD"]
 norm_var = tk.StringVar(value=norm_options[1])  # default "ZSCORE"
 norm_menu = tk.OptionMenu(root, norm_var, *norm_options)
 norm_menu.config(width=8)
-norm_menu.grid(row=5, column=5, padx=5, pady=5)
+norm_menu.grid(row=6, column=5, padx=5, pady=5)
 
 set_param_button = tk.Button(root, text="Set PID Parameters", command=set_parameters)
-set_param_button.grid(row=7, column=0, columnspan=4, padx=5, pady=5)
+set_param_button.grid(row=8, column=0, columnspan=4, padx=5, pady=5)
 info_label = tk.Label(root, text="PID Parameters: Not Set", justify=tk.LEFT)
-info_label.grid(row=8, column=0, columnspan=4, padx=5, pady=5)
+info_label.grid(row=9, column=0, columnspan=4, padx=5, pady=5)
 
 set_photo_button = tk.Button(root, text="Set Photometry Settings", command=set_photometry_settings)
-set_photo_button.grid(row=6, column=4, columnspan=n_col, padx=5, pady=5)
+set_photo_button.grid(row=8, column=4, columnspan=n_col, padx=5, pady=5)
 photo_info_label_text =(
     "           Photometry Settings\n"
     f"  Low pass filter: 48 Hz\n"
@@ -627,29 +688,10 @@ photo_info_label_text =(
     f"  Normalization:     {norm_var.get()}"
 )
 photo_info_label = tk.Label(root, text=photo_info_label_text, justify=tk.LEFT)
-photo_info_label.grid(row=7, column=4, columnspan=n_col, padx=5, pady=5)
-
-# Fix settings for inhibition
-fix_inhib_var = tk.BooleanVar(value=False)
-fix_inhib_checkbox = tk.Checkbutton(root, text="Fix inhibition", variable=fix_inhib_var)
-fix_inhib_checkbox.grid(row=8, column=4, padx=5, pady=5)
-entry_fix_inhib = tk.Entry(root, width=5)
-entry_fix_inhib.insert(0, "0")  # 0 means no fixed output by default
-entry_fix_inhib.grid(row=8, column=5, padx=5, pady=5)
-
-# Fix setting for excitation
-fix_excite_var = tk.BooleanVar(value=False)
-fix_excite_checkbox = tk.Checkbutton(root, text="Fix excitation", variable=fix_excite_var)
-fix_excite_checkbox.grid(row=7, column=6, padx=5, pady=5)
-entry_fix_excite = tk.Entry(root, width=5)
-entry_fix_excite.insert(0, "0")
-entry_fix_excite.grid(row=7, column=7, padx=5, pady=5)
-
-fix_button = tk.Button(root, text="Apply Fixed Output", command=set_fixed_settings)
-fix_button.grid(row=7, column=8, padx=5, pady=5)
+photo_info_label.grid(row=9, column=4, columnspan=n_col, padx=5, pady=5)
 
 opt_text_box = tk.Text(root, height=10, width=170)
-opt_text_box.grid(row=9, column=0, columnspan=n_col, padx=5, pady=5, sticky='nsew')
+opt_text_box.grid(row=10, column=0, columnspan=n_col, padx=5, pady=5, sticky='nsew')
 
 entry_kp_inhib.insert(0, "10.0")
 entry_ki_inhib.insert(0, "10.0")

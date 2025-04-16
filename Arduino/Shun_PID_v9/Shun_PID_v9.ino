@@ -24,10 +24,11 @@ unsigned long lastClampStatusTime = 0;
 // 
 // -----------------------
 // For moving average
-constexpr double PhotometryWindow = 30; // in ms
-constexpr double ArduinoFrequency = 8563; // Arduino sampling frequency
-constexpr int windowSize = (int)(ArduinoFrequency * (PhotometryWindow / 1000.0));
-int sampleBuffer[windowSize];
+double PhotometryWindow = 30.0; // in ms
+double baselineWindowDuration = 3000.0; // in ms
+const double ArduinoFrequency = 8563; // Arduino sampling frequency
+int windowSize = (int)(ArduinoFrequency * (PhotometryWindow / 1000.0));
+int sampleBuffer[256];
 int index = 0;
 unsigned long runningSum = 0;
 int sampleCount = 0; 
@@ -214,7 +215,8 @@ void loop() {
       }
     }
 
-    else if (inChar == 'C') {  // Calibration command
+    // Calibration command
+    else if (inChar == 'C') {  
       // Wait for the rest of the command
       while (!Serial.available()) {;}
       String paramStr = Serial.readStringUntil('\n');
@@ -234,6 +236,47 @@ void loop() {
       // Flush any remaining characters so stray digits aren’t misinterpreted.
       while (Serial.available()) {
         Serial.read();
+      }
+    }
+
+    // Input processing options
+    else if (inChar == 'I'){
+      // Wait for the rest of the command
+      while (!Serial.available()) {}
+      String paramStr = Serial.readStringUntil('\n');
+      paramStr.trim();
+      
+      // The expected format: <photometryWindow>,<baselineWindowDuration>,<normalizationMethod>
+      int idx1 = paramStr.indexOf(',');
+      int idx2 = paramStr.indexOf(',', idx1+1);
+      if (idx1 != -1 && idx2 != -1) {
+        double newPhotometryWindow = paramStr.substring(0, idx1).toFloat();
+        double newBaselineWindowDuration = paramStr.substring(idx1+1, idx2).toFloat();
+        int normMethod = paramStr.substring(idx2+1).toInt();  // 0=RAW, 1=ZSCORE, 2=BASELINE, 3=STD
+        
+        PhotometryWindow = newPhotometryWindow;
+        baselineWindowDuration = newBaselineWindowDuration;
+        normalizeMethod = (NormalizeMethod)normMethod;
+        
+        windowSize = (int)(ArduinoFrequency * (PhotometryWindow / 1000.0));
+        // Optionally, clear your sampleBuffer and reset sampleCount, runningSum, index.
+        sampleCount = 0;
+        runningSum = 0;
+        index = 0;
+        // You might zero the sampleBuffer if desired:
+        for (int i = 0; i < windowSize && i < 256; i++) {
+          sampleBuffer[i] = 0;
+        }
+        
+        Serial.println("Photometry settings updated:");
+        Serial.print("Moving Average Window (ms): "); Serial.println(PhotometryWindow);
+        Serial.print("Baseline Duration (ms): "); Serial.println(baselineWindowDuration);
+        Serial.print("Normalization Method: "); Serial.println(normMethod);
+
+        // Flush any remaining characters so stray digits aren’t misinterpreted.
+        while (Serial.available()) {
+          Serial.read();
+        }
       }
     }
 
@@ -367,10 +410,10 @@ void loop() {
       switch (normalizeMethod) {
         case RAW:
           if (baselineWindow.count() <= 1){
-            input = processedSignal;
-            target = processedSignal;
+            input = rawSignal;
+            target = rawSignal;
           } else{
-            input = processedSignal;
+            input = rawSignal;
             target = baselineWindow.median();
           }
           break;

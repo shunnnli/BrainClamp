@@ -258,22 +258,27 @@ def run_optimization_custom(trials, measure_duration, kp_inhib_range, ki_inhib_r
     def objective(trial):
         log_message(f"\n========= Starting trial {trial.number} =========")
         
-        kp_inhib = trial.suggest_float("Kp_inhib", kp_inhib_range[0], kp_inhib_range[1], log=logscale)
-        ki_inhib = trial.suggest_float("Ki_inhib", ki_inhib_range[0], ki_inhib_range[1], log=logscale)
-        kd_inhib = trial.suggest_float("Kd_inhib", kd_inhib_range[0], kd_inhib_range[1], log=logscale)
-        kp_excite = trial.suggest_float("Kp_excite", kp_excite_range[0], kp_excite_range[1], log=logscale)
-        ki_excite = trial.suggest_float("Ki_excite", ki_excite_range[0], ki_excite_range[1], log=logscale)
-        kd_excite = trial.suggest_float("Kd_excite", kd_excite_range[0], kd_excite_range[1], log=logscale)
-
-        if fixFlagInhib:
+        if fixFlagInhib and not fixFlagExcite:
             kp_inhib = 0.0
             ki_inhib = 0.0
             kd_inhib = 0.0
-
-        if fixFlagExcite:
+            kp_excite = trial.suggest_float("Kp_excite", kp_excite_range[0], kp_excite_range[1], log=logscale)
+            ki_excite = trial.suggest_float("Ki_excite", ki_excite_range[0], ki_excite_range[1], log=logscale)
+            kd_excite = trial.suggest_float("Kd_excite", kd_excite_range[0], kd_excite_range[1], log=logscale)
+        elif fixFlagExcite and not fixFlagInhib:
             kp_excite = 0.0
             ki_excite = 0.0
             kd_excite = 0.0
+            kp_inhib = trial.suggest_float("Kp_inhib", kp_inhib_range[0], kp_inhib_range[1], log=logscale)
+            ki_inhib = trial.suggest_float("Ki_inhib", ki_inhib_range[0], ki_inhib_range[1], log=logscale)
+            kd_inhib = trial.suggest_float("Kd_inhib", kd_inhib_range[0], kd_inhib_range[1], log=logscale)
+        elif not fixFlagExcite and not fixFlagInhib:
+            kp_inhib = trial.suggest_float("Kp_inhib", kp_inhib_range[0], kp_inhib_range[1], log=logscale)
+            ki_inhib = trial.suggest_float("Ki_inhib", ki_inhib_range[0], ki_inhib_range[1], log=logscale)
+            kd_inhib = trial.suggest_float("Kd_inhib", kd_inhib_range[0], kd_inhib_range[1], log=logscale)
+            kp_excite = trial.suggest_float("Kp_excite", kp_excite_range[0], kp_excite_range[1], log=logscale)
+            ki_excite = trial.suggest_float("Ki_excite", ki_excite_range[0], ki_excite_range[1], log=logscale)
+            kd_excite = trial.suggest_float("Kd_excite", kd_excite_range[0], kd_excite_range[1], log=logscale)
 
         max_inhib = float(entry_max_inhib.get())
         max_excite = float(entry_max_excite.get())
@@ -295,7 +300,7 @@ def run_optimization_custom(trials, measure_duration, kp_inhib_range, ki_inhib_r
             if ser.in_waiting:
                 try:
                     line = ser.readline().decode().strip()
-                    error_val = float(line) * 100
+                    error_val = float(line)
                     error_sum += abs(error_val)
                     count += 1
                 except:
@@ -303,7 +308,7 @@ def run_optimization_custom(trials, measure_duration, kp_inhib_range, ki_inhib_r
         if count == 0:
             log_message("No valid measurements received during trial. Returning high error.")
             return float('inf')
-        avg_error = error_sum / count
+        avg_error = (error_sum / count)
         log_message(f"\nTrial {trial.number}: Avg Squared Error = {avg_error:.4f} based on {count} samples")
         return avg_error
 
@@ -342,7 +347,7 @@ def open_calibration_popup():
     # Row 0: Inhibition Slider and adjustment buttons
     tk.Label(popup, text="Inhibition PWM Frequency (Hz):").grid(row=0, column=0, padx=5, pady=5, sticky="e")
     inhib_slider = tk.Scale(popup, from_=0, to=255, orient=tk.HORIZONTAL)
-    inhib_slider.set(80)  # Default value
+    inhib_slider.set(70)  # Default value
     inhib_slider.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
     
     # Buttons for inhibition slider adjustments
@@ -354,7 +359,7 @@ def open_calibration_popup():
     # Row 1: Excitation Slider and adjustment buttons
     tk.Label(popup, text="Excitation PWM Frequency (Hz):").grid(row=1, column=0, padx=5, pady=5, sticky="e")
     excite_slider = tk.Scale(popup, from_=0, to=255, orient=tk.HORIZONTAL)
-    excite_slider.set(40)  # Default value
+    excite_slider.set(45)  # Default value
     excite_slider.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
     
     # Buttons for excitation slider adjustments
@@ -645,7 +650,7 @@ entry_baselineSample.insert(0, "3000")  # default 3000 ms
 entry_baselineSample.grid(row=5, column=5, padx=5, pady=5)
 tk.Label(root, text="Normalization method:").grid(row=6, column=4, padx=5, pady=5)
 norm_options = ["RAW", "ZSCORE", "BASELINE", "STD"]
-norm_var = tk.StringVar(value=norm_options[1])  # default "ZSCORE"
+norm_var = tk.StringVar(value=norm_options[0])  # default "RAW"
 norm_menu = tk.OptionMenu(root, norm_var, *norm_options)
 norm_menu.config(width=8)
 norm_menu.grid(row=6, column=5, padx=5, pady=5)

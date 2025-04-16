@@ -48,7 +48,7 @@ enum NormalizeMethod {
   BASELINE,
   STD
 };
-NormalizeMethod normalizeMethod = ZSCORE;
+NormalizeMethod normalizeMethod = RAW;
 
 // -----------------------
 // Initialize arrays for moving statistics
@@ -419,7 +419,8 @@ void loop() {
             target = signal;
           } else {
             input = signal;
-            target = baselineWindow.median();
+            baseline = baselineWindow.median();
+            target = baseline;
           }
           break;
 

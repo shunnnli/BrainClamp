@@ -270,7 +270,7 @@ void loop() {
       String paramStr = Serial.readStringUntil('\n');
       paramStr.trim();
 
-      const int NUM_PARAMS = 10;
+      const int NUM_PARAMS = 12;
       float params[NUM_PARAMS];
       int tokenIndex = 0;
       int startIndex = 0;
@@ -295,6 +295,9 @@ void loop() {
         Max_excite = params[7];
         int fixFlagInhib = (int)params[8];
         int fixFlagExcite = (int)params[9];
+        k_inhibit = params[10];
+        k_excite = params[11];
+        deadbandMult = params[12];
         
         if (fixFlagInhib == 1) {
           fixInhib = true;
@@ -328,8 +331,11 @@ void loop() {
         Serial.print(" Fix flag: "); Serial.println(fixFlagInhib);
         Serial.print("Max Excite: "); Serial.print(Max_excite);
         Serial.print(" Fix flag: "); Serial.println(fixFlagExcite);
+        Serial.print("expo-k inhib: "); Serial.println(k_inhibit);
+        Serial.print("expo-k excite: "); Serial.println(k_excite);
+        Serial.print("Deadband multiplier: "); Serial.println(deadbandMult);
       } else {
-        Serial.println("Error: T command expected 10 parameters.");
+        Serial.println("Error: T command expected 12 parameters.");
       }
 
       // Flush any remaining characters so stray digits aren’t misinterpreted.

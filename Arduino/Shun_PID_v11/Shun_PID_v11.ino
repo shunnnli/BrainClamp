@@ -510,14 +510,14 @@ void loop() {
       } else if (debugMode) {
         // Print real-time values.
         double errorSignal = (target - input);
-        Serial.print("  Target: "); Serial.print(target, 3);
-        Serial.print("  Signal: "); Serial.print(signal,3);
-        Serial.print("  Input: "); Serial.print(input, 3);
-        Serial.print("  Baseline Std: "); Serial.print(baseline_std, 3);
-        Serial.print("  Baseline: "); Serial.print(baseline, 3);
-        Serial.print("  Error: "); Serial.print(errorSignal, 3);
-        Serial.print("  Max (inhi): "); Serial.print(Max_inhibit, 1);
-        Serial.print("  Max (exci): "); Serial.println(Max_excite, 1);
+        Serial.print("  Target: "); Serial.print(target, 1);
+        //Serial.print("  Signal: "); Serial.print(signal,1);
+        Serial.print("  Input: "); Serial.println(input, 1);
+        //Serial.print("  Baseline Std: "); Serial.print(baseline_std, 3);
+        //Serial.print("  Baseline: "); Serial.print(baseline, 3);
+        //Serial.print("  Error: "); Serial.print(errorSignal, 3);
+        //Serial.print("  Max (inhi): "); Serial.print(Max_inhibit, 1);
+        //Serial.print("  Max (exci): "); Serial.println(Max_excite, 1);
       } else {
         // Send clamp status to GUI
         Serial.print("CLAMP:");

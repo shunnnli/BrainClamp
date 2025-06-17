@@ -140,6 +140,11 @@ def set_parameters():
             kd_excite = float(entry_kd_excite.get())
             max_excite = float(entry_max_excite.get())
             fixFlagExcite = 0
+
+        # Read expo-k and deadband
+        expo_k_inhib = float(entry_expo_k_inhib.get())
+        expo_k_excite = float(entry_expo_k_excite.get())
+        deadband_mult  = float(entry_deadband.get())
         
         current_pid.update({
             "Kp_inhib": kp_inhib,
@@ -149,11 +154,14 @@ def set_parameters():
             "Ki_excite": ki_excite,
             "Kd_excite": kd_excite,
             "Max_inhib": max_inhib,
-            "Max_excite": max_excite
+            "Max_excite": max_excite,
+            "Expo_k_inhib": expo_k_inhib,
+            "Expo_k_excite": expo_k_excite,
+            "Deadband_mult": deadband_mult
         })
-        
-        # Build the T command with 10 parameters.
-        cmd = "T" + f"{kp_inhib},{ki_inhib},{kd_inhib},{kp_excite},{ki_excite},{kd_excite},{max_inhib},{max_excite},{fixFlagInhib},{fixFlagExcite},\n"
+
+        # Build the T command with 12 parameters.
+        cmd = "T" + f"{kp_inhib},{ki_inhib},{kd_inhib},{kp_excite},{ki_excite},{kd_excite},{max_inhib},{max_excite},{fixFlagInhib},{fixFlagExcite},{expo_k_inhib},{expo_k_excite},{deadband_mult},\n"
         send_command(cmd)
         update_current_info()
     except Exception as e:
@@ -282,11 +290,15 @@ def run_optimization_custom(trials, measure_duration, kp_inhib_range, ki_inhib_r
 
         max_inhib = float(entry_max_inhib.get())
         max_excite = float(entry_max_excite.get())
+        expo_k_inhib = float(entry_expo_k_inhib.get())
+        expo_k_excite = float(entry_expo_k_excite.get())
+        deadband_mult = float(entry_deadband.get())
 
         log_message(f"Testing parameters: Inhib -> Kp:{kp_inhib:.2f}, Ki:{ki_inhib:.2f}, Kd:{kd_inhib:.2f}, max: {max_inhib}; " +
                     f"Excite -> Kp:{kp_excite:.2f}, Ki:{ki_excite:.2f}, Kd:{kd_excite:.2f}, max: {max_excite}, " +
-                    f"FixInhib:{fixFlagInhib}, FixExcite:{fixFlagExcite}")
-        cmd = "T" + f"{kp_inhib},{ki_inhib},{kd_inhib},{kp_excite},{ki_excite},{kd_excite},{max_inhib},{max_excite},{fixFlagInhib},{fixFlagExcite},\n"
+                    f"FixInhib:{fixFlagInhib}, FixExcite:{fixFlagExcite}, " +
+                    f"Expo_k_inhib:{expo_k_inhib}, Expo_k_excite:{expo_k_excite}, Deadband_mult:{deadband_mult}")
+        cmd = "T" + f"{kp_inhib},{ki_inhib},{kd_inhib},{kp_excite},{ki_excite},{kd_excite},{max_inhib},{max_excite},{fixFlagInhib},{fixFlagExcite},{expo_k_inhib},{expo_k_excite},{deadband_mult},\n"
         send_command(cmd)
         time.sleep(2)
         
@@ -618,6 +630,10 @@ entry_kd_inhib.grid(row=6, column=1, padx=5, pady=5)
 tk.Label(root, text="Max power (inhib):").grid(row=7, column=0, padx=5, pady=5)
 entry_max_inhib = tk.Entry(root)
 entry_max_inhib.grid(row=7, column=1, padx=5, pady=5)
+tk.Label(root, text="Expo k (inhib):").grid(row=8, column=0, padx=5, pady=5, sticky="e")
+entry_expo_k_inhib = tk.Entry(root)
+entry_expo_k_inhib.insert(0, "5.0")
+entry_expo_k_inhib.grid(row=8, column=1, padx=5, pady=5)
 
 # PID excite params
 # Fix setting for excitation
@@ -637,6 +653,10 @@ entry_kd_excite.grid(row=6, column=3, padx=5, pady=5)
 tk.Label(root, text="Max power (excite):").grid(row=7, column=2, padx=5, pady=5)
 entry_max_excite = tk.Entry(root)
 entry_max_excite.grid(row=7, column=3, padx=5, pady=5)
+tk.Label(root, text="Expo k (excite):").grid(row=8, column=0, padx=5, pady=5, sticky="e")
+entry_expo_k_excite = tk.Entry(root)
+entry_expo_k_excite.insert(0, "2.0")
+entry_expo_k_excite.grid(row=8, column=3, padx=5, pady=5)
 
 # Photometry processing params
 tk.Label(root, text="Low pass filter (Hz):").grid(row=4, column=4, padx=5, pady=5)
@@ -654,11 +674,15 @@ norm_var = tk.StringVar(value=norm_options[0])  # default "RAW"
 norm_menu = tk.OptionMenu(root, norm_var, *norm_options)
 norm_menu.config(width=8)
 norm_menu.grid(row=6, column=5, padx=5, pady=5)
+tk.Label(root, text="Deadband mult:").grid(row=7, column=4, padx=5, pady=5, sticky="e")
+entry_deadband = tk.Entry(root)
+entry_deadband.insert(0, "0.5")               # 50% of baseline std is deadband by default
+entry_deadband.grid(row=7, column=5, padx=5, pady=5)
 
 set_param_button = tk.Button(root, text="Set PID Parameters", command=set_parameters)
-set_param_button.grid(row=8, column=0, columnspan=4, padx=5, pady=5)
+set_param_button.grid(row=9, column=0, columnspan=4, padx=5, pady=5)
 info_label = tk.Label(root, text="PID Parameters: Not Set", justify=tk.LEFT)
-info_label.grid(row=9, column=0, columnspan=4, padx=5, pady=5)
+info_label.grid(row=10, column=0, columnspan=4, padx=5, pady=5)
 
 set_photo_button = tk.Button(root, text="Set Photometry Settings", command=set_photometry_settings)
 set_photo_button.grid(row=8, column=4, columnspan=n_col, padx=5, pady=5)
@@ -669,10 +693,10 @@ photo_info_label_text =(
     f"  Normalization:     {norm_var.get()}"
 )
 photo_info_label = tk.Label(root, text=photo_info_label_text, justify=tk.LEFT)
-photo_info_label.grid(row=9, column=4, columnspan=n_col, padx=5, pady=5)
+photo_info_label.grid(row=10, column=4, columnspan=n_col, padx=5, pady=5)
 
 opt_text_box = tk.Text(root, height=10, width=170)
-opt_text_box.grid(row=10, column=0, columnspan=n_col, padx=5, pady=5, sticky='nsew')
+opt_text_box.grid(row=11, column=0, columnspan=n_col, padx=5, pady=5, sticky='nsew')
 
 entry_kp_inhib.insert(0, "10.0")
 entry_ki_inhib.insert(0, "10.0")

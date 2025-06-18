@@ -47,6 +47,8 @@ current_pid = {
 }
 # Global event used to cancel an ongoing reset timer thread
 reset_timer_event = None
+baseline_median = None
+baseline_std = None
 
 # -----------------------
 # Helper Functions
@@ -208,7 +210,7 @@ def start_reset_timer():
             root.after(0, progress_label.config, {"text": f"Reset time remaining: {i} s"})
             time.sleep(1)
         if not cancel_event.is_set():
-            root.after(0, progress_label.config, {"text": "Reset window finished"})
+            root.after(0, progress_label.config, {"text": f"Reset window finished (median: {baseline_median:.1f}, std: {baseline_std:.1f})"})
     threading.Thread(target=reset_sequence, args=(reset_timer_event,), daemon=True).start()
 
 # -----------------------
@@ -224,10 +226,10 @@ def read_clamp_status():
                     # e.g. "BASELINE_STATS:0.123456,0.007890"
                     payload = line.split(":",1)[1]
                     median_str, std_str = payload.split(",",1)
-                    median_val = float(median_str)
-                    std_val  = float(std_str)
+                    baseline_median = float(median_str)
+                    baseline_std = float(std_str)
                     # overwrite the Reset‐finished label
-                    root.after(0, progress_label.config, {"text": f"Reset window finished (median: {median_val:.1f}, std: {std_val:.1f})"})
+                    root.after(0, progress_label.config, {"text": f"Reset window finished (median: {baseline_median:.1f}, std: {baseline_std:.1f})"})
                 except Exception as e:
                     log_message(f"Error parsing baseline stats: {e}")
                 continue

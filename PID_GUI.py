@@ -630,9 +630,9 @@ entry_kd_inhib.grid(row=6, column=1, padx=5, pady=5)
 tk.Label(root, text="Max power (inhib):").grid(row=7, column=0, padx=5, pady=5)
 entry_max_inhib = tk.Entry(root)
 entry_max_inhib.grid(row=7, column=1, padx=5, pady=5)
-tk.Label(root, text="Expo k (inhib):").grid(row=8, column=0, padx=5, pady=5, sticky="e")
+tk.Label(root, text="Expo k (inhib):").grid(row=8, column=0, padx=5, pady=5)
 entry_expo_k_inhib = tk.Entry(root)
-entry_expo_k_inhib.insert(0, "5.0")
+entry_expo_k_inhib.insert(0, "10.0")
 entry_expo_k_inhib.grid(row=8, column=1, padx=5, pady=5)
 
 # PID excite params
@@ -653,7 +653,7 @@ entry_kd_excite.grid(row=6, column=3, padx=5, pady=5)
 tk.Label(root, text="Max power (excite):").grid(row=7, column=2, padx=5, pady=5)
 entry_max_excite = tk.Entry(root)
 entry_max_excite.grid(row=7, column=3, padx=5, pady=5)
-tk.Label(root, text="Expo k (excite):").grid(row=8, column=0, padx=5, pady=5, sticky="e")
+tk.Label(root, text="Expo k (excite):").grid(row=8, column=0, padx=5, pady=5)
 entry_expo_k_excite = tk.Entry(root)
 entry_expo_k_excite.insert(0, "2.0")
 entry_expo_k_excite.grid(row=8, column=3, padx=5, pady=5)
@@ -674,9 +674,9 @@ norm_var = tk.StringVar(value=norm_options[0])  # default "RAW"
 norm_menu = tk.OptionMenu(root, norm_var, *norm_options)
 norm_menu.config(width=8)
 norm_menu.grid(row=6, column=5, padx=5, pady=5)
-tk.Label(root, text="Deadband mult:").grid(row=7, column=4, padx=5, pady=5, sticky="e")
+tk.Label(root, text="Deadband mult:").grid(row=7, column=4, padx=5, pady=5)
 entry_deadband = tk.Entry(root)
-entry_deadband.insert(0, "0.5")               # 50% of baseline std is deadband by default
+entry_deadband.insert(0, "2")               # 50% of baseline std is deadband by default
 entry_deadband.grid(row=7, column=5, padx=5, pady=5)
 
 set_param_button = tk.Button(root, text="Set PID Parameters", command=set_parameters)

@@ -35,7 +35,7 @@ float expo;
 // Photometry & Baseline Params
 // -----------------------
 // Deadband
-const float deadbandMult = 0.5; // 50% of baseline STD
+float deadband = 3;
 
 // For baseline sample duration
 double baselineWindowDuration = 3000.0;  // in ms
@@ -270,7 +270,7 @@ void loop() {
       String paramStr = Serial.readStringUntil('\n');
       paramStr.trim();
 
-      const int NUM_PARAMS = 12;
+      const int NUM_PARAMS = 13;
       float params[NUM_PARAMS];
       int tokenIndex = 0;
       int startIndex = 0;
@@ -297,7 +297,7 @@ void loop() {
         int fixFlagExcite = (int)params[9];
         k_inhibit = params[10];
         k_excite = params[11];
-        deadbandMult = params[12];
+        deadband = params[12];
         
         if (fixFlagInhib == 1) {
           fixInhib = true;
@@ -333,7 +333,7 @@ void loop() {
         Serial.print(" Fix flag: "); Serial.println(fixFlagExcite);
         Serial.print("expo-k inhib: "); Serial.println(k_inhibit);
         Serial.print("expo-k excite: "); Serial.println(k_excite);
-        Serial.print("Deadband multiplier: "); Serial.println(deadbandMult);
+        Serial.print("Deadband: "); Serial.println(deadband);
       } else {
         Serial.println("Error: T command expected 12 parameters.");
       }
@@ -426,11 +426,6 @@ void loop() {
 
     // Control state: run the PIDs, update target, and output control signals
     case Control:
-      // Apply deadband
-      baseline = baselineWindow.median();
-      baseline_std = baselineWindow.std();
-      deadband = deadbandMult * baseline_std;
-
       // Determine input & output
       switch (normalizeMethod) {
         case RAW:
@@ -438,6 +433,7 @@ void loop() {
             input = signal;
             target = signal;
           } else {
+            baseline = baselineWindow.median();
             target = baseline;
             if (fabs(signal-baseline) < deadband){input = target;}
             else{input = signal;}
@@ -451,7 +447,8 @@ void loop() {
             target = 1;
           } else {
             target = 1;
-            if (fabs(signal-baesline) < deadband){input = target;}
+            baseline = baselineWindow.median();
+            if (fabs(signal-baseline) < deadband){input = target;}
             else{input = signal / baseline;}
           }
           break;
@@ -463,7 +460,9 @@ void loop() {
             target = 0;
           } else {
             target = 0;
-            if (fabs(signal-baesline) < deadband){input = target;}
+            baseline = baselineWindow.median();
+            baseline_std = baselineWindow.std();
+            if (fabs(signal-baseline) < deadband){input = target;}
             else{input = (baseline_std > 0) ? ((signal - baseline) / baseline_std) : 0;}
           }
           break;
@@ -475,7 +474,9 @@ void loop() {
             target = signal;
           } else {
             target = (baseline_std > 0) ? (baseline / baseline_std) : baseline;
-            if (fabs(signal-baesline) < deadband){input = target;}
+            baseline = baselineWindow.median();
+            baseline_std = baselineWindow.std();
+            if (fabs(signal-baseline) < deadband){input = target;}
             else{input = (baseline_std > 0) ? (signal / baseline_std) : baseline;}
           }
           break;
@@ -539,7 +540,9 @@ void loop() {
         double errorSignal = (target - input);
         Serial.print("  Target: "); Serial.print(target, 1);
         //Serial.print("  Signal: "); Serial.print(signal,1);
+        Serial.print("  Deadband: "); Serial.print(deadband,1);
         Serial.print("  Input: "); Serial.println(input, 1);
+        //Serial.print("  Control: "); Serial.println(output_inhibit, 1);
         //Serial.print("  Baseline Std: "); Serial.print(baseline_std, 1);
         //Serial.print("  Baseline: "); Serial.print(baseline, 1);
         //Serial.print("  Error: "); Serial.print(errorSignal, 1);

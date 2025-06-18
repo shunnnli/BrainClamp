@@ -218,6 +218,22 @@ def read_clamp_status():
     global lastFlushTime
     while True:
         try:
+            line = ser.readline().decode('utf-8', errors='ignore').strip()
+            if line.startswith("BASELINE_STATS:"):
+                try: # don’t fall through to CLAMP or DEBUG handlers
+                    # e.g. "BASELINE_STATS:0.123456,0.007890"
+                    payload = line.split(":",1)[1]
+                    mean_str, std_str = payload.split(",",1)
+                    mean_val = float(mean_str)
+                    std_val  = float(std_str)
+                    # overwrite the Reset‐finished label
+                    root.after(0, progress_label.config, {
+                        "text": f"Reset window finished (mean: {mean_val:.1f}, std: {std_val:.1f})"
+                    })
+                except Exception as e:
+                    log_message(f"Error parsing baseline stats: {e}")
+                continue
+
             if debugModeGUI:
                 # In debug mode, every 5 seconds flush the serial buffer
                 if time.time() - lastFlushTime > 5:

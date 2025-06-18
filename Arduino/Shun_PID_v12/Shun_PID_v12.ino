@@ -526,6 +526,10 @@ void loop() {
           control_excite = 0;
         } else {
           baselineResetMode = false;  // Reset the mode after 60 seconds
+          Serial.print("BASELINE_STATS: ");
+          Serial.print(baselineWindow.median(),1);
+          Serial.print(",");
+          Serial.println(baselineWindow.std(),1);
         }
       }
 

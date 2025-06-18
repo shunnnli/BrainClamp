@@ -174,15 +174,18 @@ def set_photometry_settings():
         # Map the normalization string to an integer code:
         mapping = {"RAW": 0, "ZSCORE": 1, "BASELINE": 2, "STD": 3}
         normalizationMethod = mapping[norm_var.get()]
-        # Build a command: P<baselineSampleDuration>,<normalizationMethod>\n
-        cmd = "P" + f"{baselineSampleDuration},{normalizationMethod},\n"
+        deadband = float(entry_deadband.get())
+
+        # Build a command: P<baselineSampleDuration>,<normalizationMethod>,<deadband>\n
+        cmd = "P" + f"{baselineSampleDuration},{normalizationMethod},{deadband},\n"
         send_command(cmd)
         log_message("Photometry settings updated.")
         photo_info_label.config(text=(
             "           Photometry Settings\n"
             f"  Low pass filter: 48 Hz\n"
             f"  Baseline sample:   {baselineSampleDuration} ms\n"
-            f"  Normalization:     {norm_var.get()}"
+            f"  Normalization:     {norm_var.get()}\n"
+            f"  Deadband:         {deadband} ms"
         ))
     except Exception as e:
         log_message("Error updating photometry settings: " + str(e))
@@ -570,8 +573,8 @@ def toggle_optimization():
 # -----------------------
 def update_current_info():
     info_text = (f"                             PID Parameters\n"
-                 f"  Inhibit PID: Kp: {current_pid.get('Kp_inhib')}, Ki: {current_pid.get('Ki_inhib')}, Kd: {current_pid.get('Kd_inhib')}, Max: {current_pid.get('Max_inhib')}\n"
-                 f"  Excite  PID: Kp: {current_pid.get('Kp_excite')}, Ki: {current_pid.get('Ki_excite')}, Kd: {current_pid.get('Kd_excite')}, Max: {current_pid.get('Max_excite')}")
+                 f"  Inhibit PID: Kp: {current_pid.get('Kp_inhib')}, Ki: {current_pid.get('Ki_inhib')}, Kd: {current_pid.get('Kd_inhib')}, Max: {current_pid.get('Max_inhib')}, expo: {current_pid.get('Expo_inhib')}\n"
+                 f"  Excite  PID: Kp: {current_pid.get('Kp_excite')}, Ki: {current_pid.get('Ki_excite')}, Kd: {current_pid.get('Kd_excite')}, Max: {current_pid.get('Max_excite')}, expo: {current_pid.get('Expo_excite')}")
     info_label.config(text=info_text)
 
 # -----------------------

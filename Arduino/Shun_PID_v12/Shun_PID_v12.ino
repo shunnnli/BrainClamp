@@ -241,24 +241,31 @@ void loop() {
       String paramStr = Serial.readStringUntil('\n');
       paramStr.trim();
 
-      // The expected format: <baselineWindowDuration>,<normalizationMethod>
+      // Expected format: <baselineWindowDuration>,<normalizationMethod>,<deadbandMult>
       int idx1 = paramStr.indexOf(',');
-      if (idx1 != -1) {
-        double newBaselineWindowDuration = paramStr.substring(0, idx1).toFloat();
-        int normMethod = paramStr.substring(idx1 + 1).toInt();  // 0=RAW, 1=ZSCORE, 2=BASELINE, 3=STD
+      if (idx1 > 0) {
+        int idx2 = paramStr.indexOf(',', idx1 + 1);
+        if (idx2 > 0) {
+          // 1) baseline window duration (ms)
+          double newBaselineWindowDuration = paramStr.substring(0, idx1).toFloat();
+          // 2) normalization method (0=RAW,1=ZSCORE,2=BASELINE,3=STD)
+          int normMethod = paramStr.substring(idx1 + 1, idx2).toInt();
+          // 3) deadband multiplier (e.g. 0.05 for 5%)
+          double newDeadband = paramStr.substring(idx2 + 1).toFloat();
 
-        baselineWindowDuration = newBaselineWindowDuration;
-        normalizeMethod = (NormalizeMethod)normMethod;
+          // apply
+          baselineWindowDuration = newBaselineWindowDuration;
+          normalizeMethod        = (NormalizeMethod)normMethod;
+          deadband               = newDeadband;
 
-        Serial.println("Photometry settings updated:");
-        Serial.print("Baseline sample duration (ms): ");
-        Serial.println(baselineWindowDuration);
-        Serial.print("Normalization Method: ");
-        Serial.println(normMethod);
+          // echo back
+          Serial.println("Photometry settings updated:");
+          Serial.print("  Baseline sample duration (ms): "); Serial.println(baselineWindowDuration);
+          Serial.print("  Normalization method: ");              Serial.println(normMethod);
+          Serial.print("  Deadband: ");               Serial.println(deadband);
 
-        // Flush any remaining characters so stray digits aren’t misinterpreted.
-        while (Serial.available()) {
-          Serial.read();
+          // flush any stray chars
+          while (Serial.available()) Serial.read();
         }
       }
     }
@@ -270,7 +277,7 @@ void loop() {
       String paramStr = Serial.readStringUntil('\n');
       paramStr.trim();
 
-      const int NUM_PARAMS = 13;
+      const int NUM_PARAMS = 12;
       float params[NUM_PARAMS];
       int tokenIndex = 0;
       int startIndex = 0;
@@ -297,7 +304,6 @@ void loop() {
         int fixFlagExcite = (int)params[9];
         k_inhibit = params[10];
         k_excite = params[11];
-        deadband = params[12];
         
         if (fixFlagInhib == 1) {
           fixInhib = true;
@@ -333,7 +339,6 @@ void loop() {
         Serial.print(" Fix flag: "); Serial.println(fixFlagExcite);
         Serial.print("expo-k inhib: "); Serial.println(k_inhibit);
         Serial.print("expo-k excite: "); Serial.println(k_excite);
-        Serial.print("Deadband: "); Serial.println(deadband);
       } else {
         Serial.println("Error: T command expected 12 parameters.");
       }

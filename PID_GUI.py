@@ -144,7 +144,6 @@ def set_parameters():
         # Read expo-k and deadband
         expo_k_inhib = float(entry_expo_k_inhib.get())
         expo_k_excite = float(entry_expo_k_excite.get())
-        deadband_mult  = float(entry_deadband.get())
         
         current_pid.update({
             "Kp_inhib": kp_inhib,
@@ -157,11 +156,10 @@ def set_parameters():
             "Max_excite": max_excite,
             "Expo_k_inhib": expo_k_inhib,
             "Expo_k_excite": expo_k_excite,
-            "Deadband_mult": deadband_mult
         })
 
         # Build the T command with 12 parameters.
-        cmd = "T" + f"{kp_inhib},{ki_inhib},{kd_inhib},{kp_excite},{ki_excite},{kd_excite},{max_inhib},{max_excite},{fixFlagInhib},{fixFlagExcite},{expo_k_inhib},{expo_k_excite},{deadband_mult},\n"
+        cmd = "T" + f"{kp_inhib},{ki_inhib},{kd_inhib},{kp_excite},{ki_excite},{kd_excite},{max_inhib},{max_excite},{fixFlagInhib},{fixFlagExcite},{expo_k_inhib},{expo_k_excite},\n"
         send_command(cmd)
         update_current_info()
     except Exception as e:
@@ -292,13 +290,12 @@ def run_optimization_custom(trials, measure_duration, kp_inhib_range, ki_inhib_r
         max_excite = float(entry_max_excite.get())
         expo_k_inhib = float(entry_expo_k_inhib.get())
         expo_k_excite = float(entry_expo_k_excite.get())
-        deadband_mult = float(entry_deadband.get())
 
         log_message(f"Testing parameters: Inhib -> Kp:{kp_inhib:.2f}, Ki:{ki_inhib:.2f}, Kd:{kd_inhib:.2f}, max: {max_inhib}; " +
                     f"Excite -> Kp:{kp_excite:.2f}, Ki:{ki_excite:.2f}, Kd:{kd_excite:.2f}, max: {max_excite}, " +
                     f"FixInhib:{fixFlagInhib}, FixExcite:{fixFlagExcite}, " +
-                    f"Expo_k_inhib:{expo_k_inhib}, Expo_k_excite:{expo_k_excite}, Deadband_mult:{deadband_mult}")
-        cmd = "T" + f"{kp_inhib},{ki_inhib},{kd_inhib},{kp_excite},{ki_excite},{kd_excite},{max_inhib},{max_excite},{fixFlagInhib},{fixFlagExcite},{expo_k_inhib},{expo_k_excite},{deadband_mult},\n"
+                    f"Expo_k_inhib:{expo_k_inhib}, Expo_k_excite:{expo_k_excite}")
+        cmd = "T" + f"{kp_inhib},{ki_inhib},{kd_inhib},{kp_excite},{ki_excite},{kd_excite},{max_inhib},{max_excite},{fixFlagInhib},{fixFlagExcite},{expo_k_inhib},{expo_k_excite},\n"
         send_command(cmd)
         time.sleep(2)
         

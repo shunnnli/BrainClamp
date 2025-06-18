@@ -632,7 +632,7 @@ entry_max_inhib = tk.Entry(root)
 entry_max_inhib.grid(row=7, column=1, padx=5, pady=5)
 tk.Label(root, text="Expo k (inhib):").grid(row=8, column=0, padx=5, pady=5)
 entry_expo_k_inhib = tk.Entry(root)
-entry_expo_k_inhib.insert(0, "10.0")
+entry_expo_k_inhib.insert(0, "5.0")
 entry_expo_k_inhib.grid(row=8, column=1, padx=5, pady=5)
 
 # PID excite params

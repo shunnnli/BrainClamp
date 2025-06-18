@@ -250,7 +250,7 @@ void loop() {
           double newBaselineWindowDuration = paramStr.substring(0, idx1).toFloat();
           // 2) normalization method (0=RAW,1=ZSCORE,2=BASELINE,3=STD)
           int normMethod = paramStr.substring(idx1 + 1, idx2).toInt();
-          // 3) deadband multiplier (e.g. 0.05 for 5%)
+          // 3) deadband
           double newDeadband = paramStr.substring(idx2 + 1).toFloat();
 
           // apply

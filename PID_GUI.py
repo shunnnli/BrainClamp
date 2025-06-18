@@ -185,7 +185,7 @@ def set_photometry_settings():
             f"  Low pass filter: 48 Hz\n"
             f"  Baseline sample:   {baselineSampleDuration} ms\n"
             f"  Normalization:     {norm_var.get()}\n"
-            f"  Deadband:         {deadband} ms"
+            f"  Deadband:         {deadband}"
         ))
     except Exception as e:
         log_message("Error updating photometry settings: " + str(e))
@@ -573,8 +573,8 @@ def toggle_optimization():
 # -----------------------
 def update_current_info():
     info_text = (f"                             PID Parameters\n"
-                 f"  Inhibit PID: Kp: {current_pid.get('Kp_inhib')}, Ki: {current_pid.get('Ki_inhib')}, Kd: {current_pid.get('Kd_inhib')}, Max: {current_pid.get('Max_inhib')}, expo: {current_pid.get('Expo_inhib')}\n"
-                 f"  Excite  PID: Kp: {current_pid.get('Kp_excite')}, Ki: {current_pid.get('Ki_excite')}, Kd: {current_pid.get('Kd_excite')}, Max: {current_pid.get('Max_excite')}, expo: {current_pid.get('Expo_excite')}")
+                 f"  Inhibit PID: Kp: {current_pid.get('Kp_inhib')}, Ki: {current_pid.get('Ki_inhib')}, Kd: {current_pid.get('Kd_inhib')}, Max: {current_pid.get('Max_inhib')}, expo: {entry_expo_k_inhib.get()}\n"
+                 f"  Excite  PID: Kp: {current_pid.get('Kp_excite')}, Ki: {current_pid.get('Ki_excite')}, Kd: {current_pid.get('Kd_excite')}, Max: {current_pid.get('Max_excite')}, expo: {entry_expo_k_excite.get()}")
     info_label.config(text=info_text)
 
 # -----------------------
@@ -653,7 +653,7 @@ entry_kd_excite.grid(row=6, column=3, padx=5, pady=5)
 tk.Label(root, text="Max power (excite):").grid(row=7, column=2, padx=5, pady=5)
 entry_max_excite = tk.Entry(root)
 entry_max_excite.grid(row=7, column=3, padx=5, pady=5)
-tk.Label(root, text="Expo k (excite):").grid(row=8, column=0, padx=5, pady=5)
+tk.Label(root, text="Expo k (excite):").grid(row=8, column=2, padx=5, pady=5)
 entry_expo_k_excite = tk.Entry(root)
 entry_expo_k_excite.insert(0, "2.0")
 entry_expo_k_excite.grid(row=8, column=3, padx=5, pady=5)
@@ -674,7 +674,7 @@ norm_var = tk.StringVar(value=norm_options[0])  # default "RAW"
 norm_menu = tk.OptionMenu(root, norm_var, *norm_options)
 norm_menu.config(width=8)
 norm_menu.grid(row=6, column=5, padx=5, pady=5)
-tk.Label(root, text="Deadband mult:").grid(row=7, column=4, padx=5, pady=5)
+tk.Label(root, text="Deadband:").grid(row=7, column=4, padx=5, pady=5)
 entry_deadband = tk.Entry(root)
 entry_deadband.insert(0, "2")               # 50% of baseline std is deadband by default
 entry_deadband.grid(row=7, column=5, padx=5, pady=5)
@@ -690,7 +690,8 @@ photo_info_label_text =(
     "           Photometry Settings\n"
     f"  Low pass filter: 48 Hz\n"
     f"  Baseline sample:   {float(entry_baselineSample.get())} ms\n"
-    f"  Normalization:     {norm_var.get()}"
+    f"  Normalization:     {norm_var.get()}\n"
+    f"  Deadband:          {float(entry_deadband.get())}"
 )
 photo_info_label = tk.Label(root, text=photo_info_label_text, justify=tk.LEFT)
 photo_info_label.grid(row=10, column=4, columnspan=n_col, padx=5, pady=5)

@@ -223,12 +223,13 @@ def read_clamp_status():
                 try: # don’t fall through to CLAMP or DEBUG handlers
                     # e.g. "BASELINE_STATS:0.123456,0.007890"
                     payload = line.split(":",1)[1]
-                    mean_str, std_str = payload.split(",",1)
-                    mean_val = float(mean_str)
+                    median_str, std_str = payload.split(",",1)
+                    median_val = float(median_str)
                     std_val  = float(std_str)
+                    print("sdafdsf")
                     # overwrite the Reset‐finished label
                     root.after(0, progress_label.config, {
-                        "text": f"Reset window finished (mean: {mean_val:.1f}, std: {std_val:.1f})"
+                        "text": f"Reset window finished (median: {median_val:.1f}, std: {std_val:.1f})"
                     })
                 except Exception as e:
                     log_message(f"Error parsing baseline stats: {e}")

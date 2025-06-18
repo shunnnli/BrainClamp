@@ -210,7 +210,7 @@ def start_reset_timer():
             root.after(0, progress_label.config, {"text": f"Reset time remaining: {i} s"})
             time.sleep(1)
         if not cancel_event.is_set():
-            root.after(0, progress_label.config, {"text": f"Reset window finished (median: {baseline_median:.1f}, std: {baseline_std:.1f})"})
+            root.after(0, progress_label.config, {"text": f"Reset window finished"})
     threading.Thread(target=reset_sequence, args=(reset_timer_event,), daemon=True).start()
 
 # -----------------------

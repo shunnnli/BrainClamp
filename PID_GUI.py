@@ -228,9 +228,7 @@ def read_clamp_status():
                     std_val  = float(std_str)
                     print("sdafdsf")
                     # overwrite the Reset‐finished label
-                    root.after(0, progress_label.config, {
-                        "text": f"Reset window finished (median: {median_val:.1f}, std: {std_val:.1f})"
-                    })
+                    root.after(0, progress_label.config, text=f"Reset window finished (median: {median_val:.2f}, std: {std_val:.2f})")
                 except Exception as e:
                     log_message(f"Error parsing baseline stats: {e}")
                 continue

@@ -692,7 +692,7 @@ norm_menu.config(width=8)
 norm_menu.grid(row=6, column=5, padx=5, pady=5)
 tk.Label(root, text="Deadband:").grid(row=7, column=4, padx=5, pady=5)
 entry_deadband = tk.Entry(root)
-entry_deadband.insert(0, "2")               # 50% of baseline std is deadband by default
+entry_deadband.insert(0, "3") 
 entry_deadband.grid(row=7, column=5, padx=5, pady=5)
 
 set_param_button = tk.Button(root, text="Set PID Parameters", command=set_parameters)

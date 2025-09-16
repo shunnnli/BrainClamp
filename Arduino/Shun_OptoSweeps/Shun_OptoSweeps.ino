@@ -8,7 +8,7 @@
 #define Idle 0 //Defining constants and assigning values. These are variables with fixed values defined before the program runs.
 #define ITI_State 1
 #define OptoSweeps 2
-//#define SweepInterval 3
+#define SweepInterval 3
 //#define SecondCueOn 4
 //#define SolenoidOn 5
 //#define SolenoidOff 6
@@ -21,7 +21,7 @@
 int RepeatPerPattern = 30; //Total number of repeats per pattern
 
 // Blue laser parameters
-int blue_pwm[] = {40, 50, 80}; // PWM frequencies in Hz
+int blue_pwm[] = {20, 30, 40}; // PWM frequencies in Hz
 float blue_duration[] = {0.1, 0.5, 1.0}; // durations in seconds
 int blue_patterns = 3; // number of blue patterns
 
@@ -42,6 +42,11 @@ float StimDuration = 0; // current stimulation duration in seconds
 unsigned long BluePatternCount[3] = {0,0,0};
 unsigned long RedPatternCount[3] = {0,0,0};
 
+// Pattern completion tracking
+int TotalPatterns = 6; // 3 blue + 3 red patterns
+int CompletedPatterns = 0;
+boolean AllPatternsCompleted = false;
+
 
 // Set up parameters for the behavior - REMOVED UNUSED VARIABLES
 
@@ -51,7 +56,6 @@ unsigned long ITI2 = 5000;
 unsigned long ITI = 0; // ITI = random(ITI1,ITI2)
 
 // Input output pin description //Constants prevent specific object/method()/variable to modify data
-const byte Sync = 2; // non-periodic sync pulse
 const byte ShutterBlue = 7; //1=blue shutter open, 0=closed
 const byte ShutterRed = 2; //1=red shutter open, 0=closed [This may be important for laser stimulation]
 
@@ -60,9 +64,6 @@ char SerialInput = '0'; //for incoming serial data
 
 // Constantly occuring stuffs
 static int state = 0 ; // MAIN behavior state variable for running behavior task
-unsigned long TimerSync = 0; //timer for non-periodic sync pulse
-int SyncPulseInterval = 1000; //interval for non-periodic sync pulse
-int SyncNow = 0; //current sync signal status
 // Opto stim parameters
 unsigned long TimerPulse = 0;
 int OptoNow = 0;
@@ -81,20 +82,13 @@ void setup() { //Setup function called when sketch starts. The setup function is
 
   Serial.begin(115200); //Set the data rate in bits per second. 115200 is default
 
-  pinMode(Sync, OUTPUT); //Configure specified pins as inputs or outputs
   pinMode(ShutterBlue, OUTPUT);
   pinMode(ShutterRed, OUTPUT);
 
-  // Initialize sync params
-  Start = millis(); //Number of milliseconds passed since program starts
-  TimerSync = millis();
-  state = 0; //Sync parameters are defined above beginning at L62
-  SyncNow = 0;
   // Initialize opto params
   TimerPulse = 0;
   OptoNow = 0;
 
-  digitalWrite(Sync, LOW); //Set pins off
   digitalWrite(ShutterBlue, LOW);
   digitalWrite(ShutterRed, LOW);
   randomSeed(analogRead(3));
@@ -108,7 +102,6 @@ void setup() { //Setup function called when sketch starts. The setup function is
 
 
 void loop() {
-  sync(); //Non period sync pulse (1s width) generation
   opto(); 
 
   switch (state) {
@@ -175,19 +168,28 @@ void loop() {
           Serial.println("s");
         }
         
-        state = 1;
+        // Check if all patterns are completed
+        CompletedPatterns = 0;
+        for (int i = 0; i < blue_patterns; i++) {
+          if (BluePatternCount[i] >= RepeatPerPattern) CompletedPatterns++;
+        }
+        for (int i = 0; i < red_patterns; i++) {
+          if (RedPatternCount[i] >= RepeatPerPattern) CompletedPatterns++;
+        }
+        
+        if (CompletedPatterns >= TotalPatterns) {
+          state = 3; // Go to SweepInterval state
+        } else {
+          state = 1; // Continue with ITI
+        }
       }
-      
       break;
 
     // state 3: interval between each sweep pattern
-//    case SweepInterval:
-//      if (PatternNum == CurrentPattern && CurrentRepeat == RepeatPerPattern){
-//        Serial.println("Finished: all opto sweeps");
-//        state = 1;
-//      }
-//      state = 1;
-//      break;
+    case SweepInterval:
+      Serial.println("Finished: all opto sweeps");
+      state = 0;
+      break;
   }
   // END OF SWITCH STRCUTURE //
 
@@ -222,26 +224,8 @@ void loop() {
     }
 
   }
-
-  // REMOVED UNUSED OUTCOME HANDLING CODE
 }
 
-//********************************************************************************************//
-void sync() { // Void function governing sync pulses?
-  if (millis() - TimerSync >= SyncPulseInterval) {
-    if (SyncNow == 1) {
-      TimerSync = millis();
-      digitalWrite(Sync, LOW);
-      SyncNow = 0;
-      SyncPulseInterval = 100 + random(1, 400); // random sync pulse interval between 1~2s
-    } else { 
-      TimerSync = millis();
-      digitalWrite(Sync, HIGH);
-      SyncNow = 1;
-      SyncPulseInterval = 50;
-    }
-  }
-}
 
 //********************************************************************************************//
 // Assigned upcoming opto delivery
@@ -275,11 +259,3 @@ void opto(){
   }
   OptoDelivering = false;
 }
-
-// REMOVED UNUSED RANDOM SHUTTER SOUND FUNCTION
-
-//********************************************************************************************//
-// REMOVED UNUSED LICK DETECTION FUNCTION
-
-//********************************************************************************************//
-// REMOVED UNUSED PRINT TRIALS FUNCTION

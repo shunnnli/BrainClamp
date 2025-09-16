@@ -37,6 +37,7 @@ unsigned long PulseInterval = 0;
 int PulseNum = 0; //number of laser trials
 int LaserColor = 0;
 float StimDuration = 0; // current stimulation duration in seconds
+int PWMIntensity = 128; // PWM intensity (0-255), default 50%
 
 // Initialize pattern counting
 unsigned long BluePatternCount[3] = {0,0,0};
@@ -240,19 +241,19 @@ void giveOpto(){
 }
 
 //********************************************************************************************//
-// Execute opto delivery 
+// Execute opto delivery with PWM
 void opto(){
   if (PulseNum > 0 && millis() - TimerPulse >= OptoInterval){
     OptoDelivering = true;
     if (OptoNow == 1){
       TimerPulse = millis();
-      digitalWrite(LaserColor, LOW);
+      analogWrite(LaserColor, 0); // PWM OFF
       OptoNow = 0;
       PulseNum -= 1;
       OptoInterval = PulseInterval;
     } else {
       TimerPulse = millis();
-      digitalWrite(LaserColor, HIGH);
+      analogWrite(LaserColor, PWMIntensity); // PWM ON with specified intensity
       OptoNow = 1;
       OptoInterval = PulseDuration;
     }

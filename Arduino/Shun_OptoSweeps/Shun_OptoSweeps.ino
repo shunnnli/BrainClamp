@@ -46,8 +46,8 @@ unsigned long RedPatternCount[3] = {0,0,0};
 // Set up parameters for the behavior - REMOVED UNUSED VARIABLES
 
 // Time params
-unsigned long ITI1 = 40000;
-unsigned long ITI2 = 40000;
+unsigned long ITI1 = 4000;
+unsigned long ITI2 = 5000;
 unsigned long ITI = 0; // ITI = random(ITI1,ITI2)
 
 // Input output pin description //Constants prevent specific object/method()/variable to modify data
@@ -120,7 +120,8 @@ void loop() {
         Serial.print("TASK STARTED AT ");
         Serial.print("\t");
         Serial.println(millis());
-        digitalWrite(ShutterBlue, HIGH);
+        digitalWrite(ShutterBlue, LOW);
+        digitalWrite(ShutterRed, LOW);
         state = 1;
       }
       break;
@@ -199,17 +200,14 @@ void loop() {
       Serial.println(millis());
       state = 0;
       End = millis();
+      digitalWrite(ShutterBlue, LOW);
+      digitalWrite(ShutterRed, LOW);
     }
   }
 
   if (Serial.available() > 0) {
     // read the incoming byte:
     SerialInput = Serial.read();
-
-    //Serial.print("I received: ");
-    //Serial.println(SerialInput);
-
-    // REMOVED UNUSED SERIAL INPUT HANDLERS
 
     if (SerialInput == '3') {
       digitalWrite(ShutterBlue, HIGH);
@@ -222,38 +220,6 @@ void loop() {
       //delay(2000);
       //digitalWrite(ShutterRed, LOW);
     }
-
-    // if (SerialInput == '5') { //red pulsing pattern
-    //   Serial.println("Entered 5: red pulsing");
-    //   for (int i = 0; i < 20; i++) { //For loop runs 20 times
-    //     Serial.print("Red stim #");
-    //     Serial.println(i + 1); //Print red laser stimulus number
-    //     for (int j = 0; j < 5; j++) { //For loop runs 5 times
-    //       digitalWrite(ShutterRed, HIGH); //Red shutter opens
-    //       delay(PulseDurationRed); //Shutter remains open for a delay of 2ms
-    //       //delay(4);
-    //       digitalWrite(ShutterRed, LOW); //Red shutter closes
-    //       delay(50 - PulseDurationRed); //48ms delay
-    //       //delay(46);
-    //     }
-    //     delay(9500);
-    //     //delay(19000); // for j == 20, 20Hz
-    //     //delay(18000); // for j == 40, 20Hz
-    //     //delay(18000); // for j == 40, 20Hz
-    //   }
-    //   Serial.println("5: red pulsing finished");
-    // }
-
-    // if (SerialInput == '6') { //blue pulsing pattern
-    //   Serial.println("Entered 6: blue pulsing");
-    //   for (int i = 0; i < 50; i++) {
-    //     digitalWrite(ShutterBlue, HIGH);
-    //     delay(PulseDurationBlue);
-    //     digitalWrite(ShutterBlue, LOW);
-    //     delay(ITIblue - PulseDurationBlue);
-    //   }
-    //   Serial.println("6: blue pulsing finished");
-    // }
 
   }
 

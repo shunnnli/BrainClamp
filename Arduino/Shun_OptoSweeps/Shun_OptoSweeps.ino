@@ -26,7 +26,7 @@ float blue_duration[] = {0.1, 0.5, 1.0}; // durations in seconds
 int blue_patterns = 3; // number of blue patterns
 
 // Red laser parameters  
-int red_pwm[] = {40, 50, 80}; // PWM frequencies in Hz
+int red_pwm[] = {45, 55, 110}; // PWM frequencies in Hz
 float red_duration[] = {0.1, 0.5, 1.0}; // durations in seconds
 int red_patterns = 3; // number of red patterns
 
@@ -35,7 +35,7 @@ unsigned long PulseDuration = 5; //Total duration of each pulse
 unsigned long PulseFreq = 0; //Current pulse frequency in the current sweep
 unsigned long PulseInterval = 0;
 int PulseNum = 0; //number of laser trials
-int LaserColor = 22; // ShutterRed(24); ShutterBlue(22)
+int LaserColor = 0;
 float StimDuration = 0; // current stimulation duration in seconds
 
 // Initialize pattern counting

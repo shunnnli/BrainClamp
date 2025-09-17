@@ -22,13 +22,13 @@ int RepeatPerPattern = 30; //Total number of repeats per pattern
 
 // Blue laser parameters
 int blue_pwm[] = {20, 30, 40}; // PWM frequencies in Hz
-float blue_duration[] = {0.1, 0.5, 1.0}; // durations in seconds
+float blue_duration[] = {0.1, 0.5, 1}; // durations in seconds
 int blue_patterns = 3; // number of blue patterns
 
 // Red laser parameters  
-int red_pwm[] = {45, 55, 110}; // PWM frequencies in Hz
-float red_duration[] = {0.1, 0.5, 1.0}; // durations in seconds
-int red_patterns = 3; // number of red patterns
+int red_pwm[] = {45, 55}; // PWM frequencies in Hz
+float red_duration[] = {0.1, 0.5, 1}; // durations in seconds
+int red_patterns = 2; // number of red patterns
 
 unsigned long PulseDuration = 5; //Total duration of each pulse
 // Initialize opto stim params
@@ -37,7 +37,7 @@ unsigned long PulseInterval = 0;
 int PulseNum = 0; //number of laser trials
 int LaserColor = 0;
 float StimDuration = 0; // current stimulation duration in seconds
-int PWMIntensity = 128; // PWM intensity (0-255), default 50%
+int PWMIntensity = 0; // PWM intensity (0-255), default 50%
 
 // Initialize pattern counting
 unsigned long BluePatternCount[3] = {0,0,0};
@@ -138,37 +138,39 @@ void loop() {
         if (laserChoice == 0) {
           // Blue laser
           LaserColor = ShutterBlue;
-          int randChoice = random(0, blue_patterns);
-          PulseFreq = blue_pwm[randChoice];
-          StimDuration = blue_duration[randChoice];
+          int rand_pwm = random(0, nBlueFreqs);
+          int rand_dur = random(0, nDurations);
+          PWMIntensity = blue_pwm[rand_pwm];
+          StimDuration = blue_duration[rand_dur];
           BluePatternCount[randChoice] += 1;
           
           // Deliver stim
-          giveOpto();
           Serial.print("Blue stim #");
           Serial.print(BluePatternCount[randChoice]);
           Serial.print(": ");
-          Serial.print(PulseFreq);
+          Serial.print(PWMIntensity);
           Serial.print("Hz for ");
           Serial.print(StimDuration);
           Serial.println("s");
+          giveOpto();
+
         } else {
           // Red laser
           LaserColor = ShutterRed;
           int randChoice = random(0, red_patterns);
-          PulseFreq = red_pwm[randChoice];
+          PWMIntensity = red_pwm[randChoice];
           StimDuration = red_duration[randChoice];
           RedPatternCount[randChoice] += 1;
           
           // Deliver stim
-          giveOpto();
           Serial.print("Red stim #");
           Serial.print(RedPatternCount[randChoice]);
           Serial.print(": ");
-          Serial.print(PulseFreq);
+          Serial.print(PWMIntensity);
           Serial.print("Hz for ");
           Serial.print(StimDuration);
           Serial.println("s");
+          giveOpto();
         }
         
         // Check if all patterns are completed

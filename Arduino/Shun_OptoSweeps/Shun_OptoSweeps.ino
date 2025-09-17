@@ -70,6 +70,9 @@ unsigned long TimerPulse = 0;
 int OptoNow = 0;
 unsigned long OptoInterval = 0;
 boolean OptoDelivering = false;
+// Continuous stim control
+boolean StimActive = false;
+unsigned long StimStartMs = 0;
 // REMOVED UNUSED SHUTTER SOUND PARAMS
 
 // REMOVED UNUSED VARIABLES: lick detection, outcome related
@@ -103,7 +106,6 @@ void setup() { //Setup function called when sketch starts. The setup function is
 
 
 void loop() {
-  opto(); 
 
   switch (state) {
     //state 0: Idle state until Start button pushed
@@ -231,32 +233,10 @@ void loop() {
 //********************************************************************************************//
 // Assigned upcoming opto delivery
 void giveOpto(){
-  PulseNum = StimDuration * PulseFreq; // StimDuration is now in seconds
-  PulseInterval = (1000.0/PulseFreq) - PulseDuration;
-
-  if (PulseInterval <= 0 && PulseNum > 1){
-    PulseInterval = 5;
-    Serial.println("Negative PulseInterval: reset PulseInterval to 5ms");
-  }
+  // Deliver one continuous PWM pulse for the selected duration (blocking)
+  analogWrite(LaserColor, PWMIntensity);
+  delay((unsigned long)(StimDuration * 1000.0));
+  analogWrite(LaserColor, 0);
 }
 
-//********************************************************************************************//
-// Execute opto delivery with PWM
-void opto(){
-  if (PulseNum > 0 && millis() - TimerPulse >= OptoInterval){
-    OptoDelivering = true;
-    if (OptoNow == 1){
-      TimerPulse = millis();
-      analogWrite(LaserColor, 0); // PWM OFF
-      OptoNow = 0;
-      PulseNum -= 1;
-      OptoInterval = PulseInterval;
-    } else {
-      TimerPulse = millis();
-      analogWrite(LaserColor, PWMIntensity); // PWM ON with specified intensity
-      OptoNow = 1;
-      OptoInterval = PulseDuration;
-    }
-  }
-  OptoDelivering = false;
-}
+// (opto function removed; giveOpto now handles full delivery)

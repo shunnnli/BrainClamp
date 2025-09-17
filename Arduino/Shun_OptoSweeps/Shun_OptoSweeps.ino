@@ -39,12 +39,18 @@ int LaserColor = 0;
 float StimDuration = 0; // current stimulation duration in seconds
 int PWMIntensity = 0; // PWM intensity (0-255), default 50%
 
-// Initialize pattern counting
-unsigned long BluePatternCount[3] = {0,0,0};
-unsigned long RedPatternCount[3] = {0,0,0};
+// Initialize pattern counting (supports different counts of freqs/durations)
+const int nBlueFreqs = sizeof(blue_pwm) / sizeof(blue_pwm[0]);
+const int nBlueDurs  = sizeof(blue_duration) / sizeof(blue_duration[0]);
+const int nRedFreqs  = sizeof(red_pwm) / sizeof(red_pwm[0]);
+const int nRedDurs   = sizeof(red_duration) / sizeof(red_duration[0]);
+
+// Use fixed maximums for static allocation; index only up to n* values above
+unsigned long BluePatternCount[3][3] = {0};
+unsigned long RedPatternCount[3][3]  = {0};
 
 // Pattern completion tracking
-int TotalPatterns = 6; // 3 blue + 3 red patterns
+int TotalPatterns = (nBlueFreqs * nBlueDurs) + (nRedFreqs * nRedDurs);
 int CompletedPatterns = 0;
 boolean AllPatternsCompleted = false;
 
@@ -139,14 +145,14 @@ void loop() {
           // Blue laser
           LaserColor = ShutterBlue;
           int rand_pwm = random(0, nBlueFreqs);
-          int rand_dur = random(0, nDurations);
+          int rand_dur = random(0, nBlueDurs);
           PWMIntensity = blue_pwm[rand_pwm];
           StimDuration = blue_duration[rand_dur];
-          BluePatternCount[randChoice] += 1;
+          BluePatternCount[rand_pwm][rand_dur] += 1;
           
           // Deliver stim
           Serial.print("Blue stim #");
-          Serial.print(BluePatternCount[randChoice]);
+          Serial.print(BluePatternCount[rand_pwm][rand_dur]);
           Serial.print(": ");
           Serial.print(PWMIntensity);
           Serial.print("Hz for ");
@@ -157,14 +163,15 @@ void loop() {
         } else {
           // Red laser
           LaserColor = ShutterRed;
-          int randChoice = random(0, red_patterns);
-          PWMIntensity = red_pwm[randChoice];
-          StimDuration = red_duration[randChoice];
-          RedPatternCount[randChoice] += 1;
+          int rand_pwm = random(0, nRedFreqs);
+          int rand_dur = random(0, nRedDurs);
+          PWMIntensity = red_pwm[rand_pwm];
+          StimDuration = red_duration[rand_dur];
+          RedPatternCount[rand_pwm][rand_dur] += 1;
           
           // Deliver stim
           Serial.print("Red stim #");
-          Serial.print(RedPatternCount[randChoice]);
+          Serial.print(RedPatternCount[rand_pwm][rand_dur]);
           Serial.print(": ");
           Serial.print(PWMIntensity);
           Serial.print("Hz for ");
@@ -173,13 +180,17 @@ void loop() {
           giveOpto();
         }
         
-        // Check if all patterns are completed
+        // Check if all patterns are completed (counts per combination)
         CompletedPatterns = 0;
-        for (int i = 0; i < blue_patterns; i++) {
-          if (BluePatternCount[i] >= RepeatPerPattern) CompletedPatterns++;
+        for (int i = 0; i < nBlueFreqs; i++) {
+          for (int j = 0; j < nBlueDurs; j++) {
+            if (BluePatternCount[i][j] >= (unsigned long)RepeatPerPattern) CompletedPatterns++;
+          }
         }
-        for (int i = 0; i < red_patterns; i++) {
-          if (RedPatternCount[i] >= RepeatPerPattern) CompletedPatterns++;
+        for (int i = 0; i < nRedFreqs; i++) {
+          for (int j = 0; j < nRedDurs; j++) {
+            if (RedPatternCount[i][j] >= (unsigned long)RepeatPerPattern) CompletedPatterns++;
+          }
         }
         
         if (CompletedPatterns >= TotalPatterns) {
@@ -240,5 +251,3 @@ void giveOpto(){
   delay((unsigned long)(StimDuration * 1000.0));
   analogWrite(LaserColor, 0);
 }
-
-// (opto function removed; giveOpto now handles full delivery)

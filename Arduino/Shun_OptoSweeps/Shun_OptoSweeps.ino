@@ -153,9 +153,9 @@ void loop() {
           // Deliver stim
           Serial.print("Blue stim #");
           Serial.print(BluePatternCount[rand_pwm][rand_dur]);
-          Serial.print(": ");
+          Serial.print(": PWM ");
           Serial.print(PWMIntensity);
-          Serial.print("Hz for ");
+          Serial.print(" for ");
           Serial.print(StimDuration);
           Serial.println("s");
           giveOpto();
@@ -172,9 +172,9 @@ void loop() {
           // Deliver stim
           Serial.print("Red stim #");
           Serial.print(RedPatternCount[rand_pwm][rand_dur]);
-          Serial.print(": ");
+          Serial.print(": PWM ");
           Serial.print(PWMIntensity);
-          Serial.print("Hz for ");
+          Serial.print(" for ");
           Serial.print(StimDuration);
           Serial.println("s");
           giveOpto();

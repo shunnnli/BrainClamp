@@ -1,0 +1,16 @@
+
+Red stim #1: PWM 45 for 1.00s
+Blue stim #1: PWM 30 for 1.00s
+Blue stim #1: PWM 30 for 0.50s
+Blue stim #1: PWM 40 for 0.10s
+Red stim #1: PWM 45 for 0.50s
+Red stim #1: PWM 55 for 0.10s
+Blue stim #1: PWM 20 for 0.50s
+Blue stim #1: PWM 20 for 1.00s
+Blue stim #2: PWM 40 for 0.10s
+Blue stim #2: PWM 20 for 0.50s
+Blue stim #1: PWM 20 for 0.10s
+Red stim #1: PWM 55 for 0.50s
+Red stim #2: PWM 45 for 0.50s
+Blue stim #1: PWM 40 for 0.50s
+Red stim #2: PWM 55 for 0.10s

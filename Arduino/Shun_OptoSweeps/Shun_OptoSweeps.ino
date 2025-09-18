@@ -59,7 +59,7 @@ boolean AllPatternsCompleted = false;
 
 // Time params
 unsigned long ITI1 = 4000;
-unsigned long ITI2 = 5000;
+unsigned long ITI2 = 4000;
 unsigned long ITI = 0; // ITI = random(ITI1,ITI2)
 
 // Input output pin description //Constants prevent specific object/method()/variable to modify data

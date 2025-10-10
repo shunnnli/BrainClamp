@@ -7,6 +7,9 @@ __pycache__/
 *.mat
 *.asv
 
+# Folders
+2025*/
+
 # System file
 *.DS_Store
 

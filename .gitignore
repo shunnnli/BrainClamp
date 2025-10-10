@@ -8,7 +8,7 @@ __pycache__/
 *.asv
 
 # Folders
-2025*/
+data/
 
 # System file
 *.DS_Store

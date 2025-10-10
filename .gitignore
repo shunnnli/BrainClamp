@@ -6,9 +6,11 @@ __pycache__/
 # MATLAB files
 *.mat
 *.asv
+*.mov
 
 # Folders
 data/
+
 
 # System file
 *.DS_Store

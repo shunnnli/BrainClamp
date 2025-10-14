@@ -21,10 +21,11 @@ dependencies:
   - pyyaml>=6.0
   - notebook
   - nbconvert
+  - pytorch>=2.0.0
+  - torchvision>=0.15.0
+  - torchaudio>=2.0.0
+  - pytorch-cuda=12.1
   - pip:
-    - torch>=2.0.0
-    - torchvision>=0.15.0
-    - torchaudio>=2.0.0
     - optuna>=3.0.0
     - tensorboard>=2.13.0
     - wandb>=0.15.0

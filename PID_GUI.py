@@ -648,7 +648,6 @@ entry_max_inhib = tk.Entry(root)
 entry_max_inhib.grid(row=7, column=1, padx=5, pady=5)
 tk.Label(root, text="Expo k (inhib):").grid(row=8, column=0, padx=5, pady=5)
 entry_expo_k_inhib = tk.Entry(root)
-entry_expo_k_inhib.insert(0, "5.0")
 entry_expo_k_inhib.grid(row=8, column=1, padx=5, pady=5)
 
 # PID excite params
@@ -671,7 +670,6 @@ entry_max_excite = tk.Entry(root)
 entry_max_excite.grid(row=7, column=3, padx=5, pady=5)
 tk.Label(root, text="Expo k (excite):").grid(row=8, column=2, padx=5, pady=5)
 entry_expo_k_excite = tk.Entry(root)
-entry_expo_k_excite.insert(0, "2.0")
 entry_expo_k_excite.grid(row=8, column=3, padx=5, pady=5)
 
 # Photometry processing params
@@ -685,14 +683,13 @@ entry_baselineSample = tk.Entry(root)
 entry_baselineSample.insert(0, "3000")  # default 3000 ms
 entry_baselineSample.grid(row=5, column=5, padx=5, pady=5)
 tk.Label(root, text="Normalization method:").grid(row=6, column=4, padx=5, pady=5)
-norm_options = ["RAW", "ZSCORE", "BASELINE", "STD"]
-norm_var = tk.StringVar(value=norm_options[0])  # default "RAW"
+norm_options = ["RAW", "ZSCORE"]
+norm_var = tk.StringVar(value=norm_options[1])  # default "ZSCORE"
 norm_menu = tk.OptionMenu(root, norm_var, *norm_options)
 norm_menu.config(width=8)
 norm_menu.grid(row=6, column=5, padx=5, pady=5)
 tk.Label(root, text="Deadband:").grid(row=7, column=4, padx=5, pady=5)
 entry_deadband = tk.Entry(root)
-entry_deadband.insert(0, "0") 
 entry_deadband.grid(row=7, column=5, padx=5, pady=5)
 
 set_param_button = tk.Button(root, text="Set PID Parameters", command=set_parameters)
@@ -704,7 +701,7 @@ set_photo_button = tk.Button(root, text="Set Photometry Settings", command=set_p
 set_photo_button.grid(row=8, column=4, columnspan=n_col, padx=5, pady=5)
 photo_info_label_text =(
     "           Photometry Settings\n"
-    f"  Low pass filter: 48 Hz\n"
+    f"  Low pass filter: 50 Hz\n"
     f"  Baseline sample:   {float(entry_baselineSample.get())} ms\n"
     f"  Normalization:     {norm_var.get()}\n"
     f"  Deadband:          {float(entry_deadband.get())}"
@@ -715,14 +712,17 @@ photo_info_label.grid(row=10, column=4, columnspan=n_col, padx=5, pady=5)
 opt_text_box = tk.Text(root, height=10, width=170)
 opt_text_box.grid(row=11, column=0, columnspan=n_col, padx=5, pady=5, sticky='nsew')
 
-entry_kp_inhib.insert(0, "10.0")
-entry_ki_inhib.insert(0, "10.0")
-entry_kd_inhib.insert(0, "60.0")
-entry_kp_excite.insert(0, "10.0")
-entry_ki_excite.insert(0, "10.0")
-entry_kd_excite.insert(0, "40.0")
-entry_max_inhib.insert(0, "255")
-entry_max_excite.insert(0, "255")
+entry_kp_inhib.insert(0, "50.0")
+entry_ki_inhib.insert(0, "1.0")
+entry_kd_inhib.insert(0, "1.0")
+entry_kp_excite.insert(0, "20.0")
+entry_ki_excite.insert(0, "1.0")
+entry_kd_excite.insert(0, "1.0")
+entry_max_inhib.insert(0, "75")
+entry_max_excite.insert(0, "45")
+entry_expo_k_excite.insert(0, "2.0")
+entry_expo_k_inhib.insert(0, "5.0")
+entry_deadband.insert(0, "0.005")
 update_current_info()
 
 # Set PID to be OFF at startup.

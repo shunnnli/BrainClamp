@@ -184,7 +184,7 @@ def set_photometry_settings():
         log_message("Photometry settings updated.")
         photo_info_label.config(text=(
             "           Photometry Settings\n"
-            f"  Low pass filter: 48 Hz\n"
+            f"  Low pass filter: 50 Hz\n"
             f"  Baseline sample:   {baselineSampleDuration} ms\n"
             f"  Normalization:     {norm_var.get()}\n"
             f"  Deadband:         {deadband}"
@@ -684,12 +684,13 @@ entry_baselineSample.insert(0, "3000")  # default 3000 ms
 entry_baselineSample.grid(row=5, column=5, padx=5, pady=5)
 tk.Label(root, text="Normalization method:").grid(row=6, column=4, padx=5, pady=5)
 norm_options = ["RAW", "ZSCORE"]
-norm_var = tk.StringVar(value=norm_options[1])  # default "ZSCORE"
+norm_var = tk.StringVar(value=norm_options[0])  # default "RAW"
 norm_menu = tk.OptionMenu(root, norm_var, *norm_options)
 norm_menu.config(width=8)
 norm_menu.grid(row=6, column=5, padx=5, pady=5)
 tk.Label(root, text="Deadband:").grid(row=7, column=4, padx=5, pady=5)
 entry_deadband = tk.Entry(root)
+entry_deadband.insert(0, "1")
 entry_deadband.grid(row=7, column=5, padx=5, pady=5)
 
 set_param_button = tk.Button(root, text="Set PID Parameters", command=set_parameters)
@@ -722,7 +723,6 @@ entry_max_inhib.insert(0, "75")
 entry_max_excite.insert(0, "45")
 entry_expo_k_excite.insert(0, "2.0")
 entry_expo_k_inhib.insert(0, "5.0")
-entry_deadband.insert(0, "0.005")
 update_current_info()
 
 # Set PID to be OFF at startup.

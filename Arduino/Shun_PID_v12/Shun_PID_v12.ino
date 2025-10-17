@@ -17,6 +17,7 @@ bool debugMode = false;
 bool baselineResetMode = false;
 unsigned long baselineResetStartTime = 0;
 unsigned long lastClampStatusTime = 0;
+unsigned long PIDStartTime = 0;
 
 // enable fixed output mode for each channel:
 bool fixInhib = false;
@@ -57,7 +58,7 @@ enum NormalizeMethod {
   BASELINE,
   STD
 };
-NormalizeMethod normalizeMethod = RAW;
+NormalizeMethod normalizeMethod = ZSCORE;
 
 // -----------------------
 // Initialize arrays for moving statistics
@@ -407,7 +408,7 @@ void loop() {
     case Photometry:
       // Calculate moving average of photometry
       if (debugMode) {
-        Serial.print("Duration: ");
+        Serial.print(" Duration: ");
         Serial.print(millis() - LastSampleTime, 3);
         LastSampleTime = millis();
       }
@@ -432,6 +433,11 @@ void loop() {
     // Control state: run the PIDs, update target, and output control signals
     case Control:
       // Determine input & output
+      // if (debugMode){
+      //   Serial.print(" PID loop time: ");
+      //   Serial.println(millis() - PIDStartTime);
+      //   PIDStartTime = millis();
+      // }
       switch (normalizeMethod) {
         case RAW:
           if (baselineWindow.count() <= 1) {
@@ -547,13 +553,13 @@ void loop() {
       } else if (debugMode) {
         // Print real-time values.
         double errorSignal = (target - input);
-        //Serial.print("  Target: "); Serial.print(target, 1);
+        Serial.print("  Target: "); Serial.print(target, 1);
         Serial.print("  Signal: "); Serial.print(signal,1);
         //Serial.print("  Deadband: "); Serial.print(deadband,1);
         //Serial.print("  Input: "); Serial.println(input, 1);
         //Serial.print("  Control: "); Serial.println(output_inhibit, 1);
         //Serial.print("  Baseline Std: "); Serial.print(baseline_std, 1);
-        Serial.print("  Baseline: "); Serial.println(baseline, 1);
+        //Serial.print("  Baseline: "); Serial.println(baseline, 1);
         //Serial.print("  Error: "); Serial.print(errorSignal, 1);
         //Serial.print("  Max (inhi): "); Serial.print(Max_inhibit, 1);
         //Serial.print("  Max (exci): "); Serial.println(Max_excite, 1);

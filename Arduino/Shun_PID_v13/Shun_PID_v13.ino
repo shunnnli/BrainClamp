@@ -74,6 +74,7 @@ double baseline_sum_squares = 0;
 // -----------------------
 double input;            // Filtered dopamine processedSignal (after moving average)
 double target = 0;       // Desired dopamine level (might be normalized)
+bool targetLocked = false;  // True if target is manually set, false if following baseline
 double output_inhibit;   // PID output for inhibition (controls inhibition laser)
 double output_excite;    // PID output for excitation (controls excitation laser)
 double control_inhibit;  // Final control value for inhibition laser
@@ -220,6 +221,7 @@ void setup() {
   Serial.println("---------------------PhotometryClamp---------------------");
   Serial.println("Toggles: online tuning: 't'");
   Serial.println("Command: start clamping: 8  | Stop clamping: 9");
+  Serial.println("         Reset baseline: R  (locks target, collects baseline for 60s)");
   Serial.println("---------------------------------------------------------");
 }
 
@@ -244,16 +246,30 @@ void loop() {
 
     // 'R' will stop PID output and refill the baselineWindow values
     else if (inChar == 'R') {
+      // First, set target to current baseline window average (lock it)
+      if (normalizeMethod == ZSCORE) {
+        baseline = getBaselineMean();
+        baseline_std = getBaselineStd();
+        target = (baseline_std > 0) ? ((BaselineAvgInWindow - baseline) / baseline_std) : 0;
+      } else {
+        target = BaselineAvgInWindow;
+      }
+      targetLocked = true;  // Lock target during baseline reset
+      
+      // Then start baseline reset mode
       baselineResetMode = true;
       baselineResetStartTime = millis();
       resetBaseline();  // Clear baseline statistics
-      Serial.println("Entering baseline reset mode for 60s: PID output forced to zero.");
+      
+      Serial.print("Baseline reset started. Target locked at: ");
+      Serial.println(target, 2);
 
       // Flush any remaining characters so stray digits aren't misinterpreted.
       while (Serial.available()) {
         Serial.read();
       }
     }
+
 
     else if (inChar == 'D') {
       // Debug mode command: read next character (expected '1' or '0')
@@ -504,10 +520,10 @@ void loop() {
         case RAW:
           if (getBaselineCount() <= 1) {
             input = signal;
-            target = signal;
+            if (!targetLocked) target = signal;
           } else {
             baseline = getBaselineMean();  // O(1) operation using mean
-            target = baseline;
+            if (!targetLocked) target = baseline;
             if (fabs(signal-baseline) < deadband){input = target;}
             else{input = signal;}
           }
@@ -517,9 +533,9 @@ void loop() {
           // Calculate zscore for current input (Fast O(1) operations!)
           if (getBaselineCount() <= 1) {
             input = 0;
-            target = 0;
+            if (!targetLocked) target = 0;
           } else {
-            target = 0;
+            if (!targetLocked) target = 0;
             baseline = getBaselineMean();      // O(1) operation
             baseline_std = getBaselineStd();   // O(1) operation
             if (fabs(signal-baseline) < deadband){input = target;}
@@ -560,18 +576,18 @@ void loop() {
         control_excite = 0;
       }
 
-      // If in baseline reset mode, force outputs to zero for 60s
+      // If in baseline reset mode, check if 60s has passed to unlock target
       if (baselineResetMode) {
-        if (millis() - baselineResetStartTime < 60000) {
-          control_inhibit = 0;
-          control_excite = 0;
-        } else {
+        if (millis() - baselineResetStartTime >= 60000) {
           baselineResetMode = false;  // Reset the mode after 60 seconds
-          Serial.print("BASELINE_STATS: ");
+          targetLocked = false;  // Unlock target to follow new baseline
+          Serial.print("BASELINE_STATS:");
           Serial.print(getBaselineMean(),1);
           Serial.print(",");
-          Serial.println(getBaselineStd(),1);
+          Serial.print(getBaselineStd(),1);
+          Serial.println(" - Target now follows baseline");
         }
+        // PID continues to run normally with locked target during collection
       }
 
       // Write outputs to respective pins

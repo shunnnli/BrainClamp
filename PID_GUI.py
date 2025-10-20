@@ -202,15 +202,15 @@ def start_reset_timer():
     reset_timer_event = threading.Event()
     
     def reset_sequence(cancel_event):
-        send_command("R\n")  # Force PID outputs to zero for 60s
-        log_message("Baseline reset mode initiated for 60 seconds.")
+        send_command("R\n")  # Lock target and reset baseline for 60s
+        log_message("Target locked to current signal. PID still active. Collecting new baseline for 60 seconds...")
         for i in range(60, 0, -1):
             if cancel_event.is_set():
                 return
-            root.after(0, progress_label.config, {"text": f"Reset time remaining: {i} s"})
+            root.after(0, progress_label.config, {"text": f"Collecting baseline (PID ON): {i} s remaining"})
             time.sleep(1)
         if not cancel_event.is_set():
-            root.after(0, progress_label.config, {"text": f"Reset window finished"})
+            root.after(0, progress_label.config, {"text": f"Baseline collection complete - target now follows baseline"})
     threading.Thread(target=reset_sequence, args=(reset_timer_event,), daemon=True).start()
 
 # -----------------------
@@ -222,14 +222,19 @@ def read_clamp_status():
         try:
             line = ser.readline().decode('utf-8', errors='ignore').strip()
             if line.startswith("BASELINE_STATS:"):
-                try: # don’t fall through to CLAMP or DEBUG handlers
-                    # e.g. "BASELINE_STATS:0.123456,0.007890"
+                try: # don't fall through to CLAMP or DEBUG handlers
+                    # e.g. "BASELINE_STATS:0.123456,0.007890 - Target now follows baseline"
                     payload = line.split(":",1)[1]
-                    median_str, std_str = payload.split(",",1)
+                    stats_part = payload.split(" - ")[0] if " - " in payload else payload
+                    median_str, std_str = stats_part.split(",",1)
                     baseline_median = float(median_str)
                     baseline_std = float(std_str)
                     # overwrite the Reset‐finished label
-                    log_message(f"Reset window finished (median: {baseline_median:.1f}, std: {baseline_std:.1f})")
+                    if " - " in payload:
+                        message = payload.split(" - ")[1]
+                        log_message(f"Baseline collected (mean: {baseline_median:.1f}, std: {baseline_std:.1f}). {message}")
+                    else:
+                        log_message(f"Baseline stats (mean: {baseline_median:.1f}, std: {baseline_std:.1f})")
                 except Exception as e:
                     log_message(f"Error parsing baseline stats: {e}")
                 continue

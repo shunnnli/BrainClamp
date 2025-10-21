@@ -33,9 +33,6 @@ float expo;
 // -----------------------
 // Photometry & Baseline Params
 // -----------------------
-// Deadband
-float deadband = 1;
-
 // For baseline sample duration
 double baselineWindowDuration = 1000.0;  // in ms
 double signal = 0;
@@ -334,31 +331,38 @@ void loop() {
       String paramStr = Serial.readStringUntil('\n');
       paramStr.trim();
 
-      // Expected format: <baselineWindowDuration>,<normalizationMethod>,<deadbandMult>
+      // Expected format: <baselineWindowDuration>,<normalizationMethod>,<eps_on>,<eps_off>
       int idx1 = paramStr.indexOf(',');
       if (idx1 > 0) {
         int idx2 = paramStr.indexOf(',', idx1 + 1);
         if (idx2 > 0) {
-          // 1) baseline window duration (ms)
-          double newBaselineWindowDuration = paramStr.substring(0, idx1).toFloat();
-          // 2) normalization method (0=RAW, 1=ZSCORE)
-          int normMethod = paramStr.substring(idx1 + 1, idx2).toInt();
-          // 3) deadband
-          double newDeadband = paramStr.substring(idx2 + 1).toFloat();
+          int idx3 = paramStr.indexOf(',', idx2 + 1);
+          if (idx3 > 0) {
+            // 1) baseline window duration (ms)
+            double newBaselineWindowDuration = paramStr.substring(0, idx1).toFloat();
+            // 2) normalization method (0=RAW, 1=ZSCORE)
+            int normMethod = paramStr.substring(idx1 + 1, idx2).toInt();
+            // 3) EPS_ON threshold
+            double newEpsOn = paramStr.substring(idx2 + 1, idx3).toFloat();
+            // 4) EPS_OFF threshold
+            double newEpsOff = paramStr.substring(idx3 + 1).toFloat();
 
-          // apply
-          baselineWindowDuration = newBaselineWindowDuration;
-          normalizeMethod        = (NormalizeMethod)normMethod;
-          deadband               = newDeadband;
+            // apply
+            baselineWindowDuration = newBaselineWindowDuration;
+            normalizeMethod        = (NormalizeMethod)normMethod;
+            EPS_ON                 = newEpsOn;
+            EPS_OFF                = newEpsOff;
 
-          // echo back
-          Serial.println("Photometry settings updated:");
-          Serial.print("  Baseline sample duration (ms): "); Serial.println(baselineWindowDuration);
-          Serial.print("  Normalization method: ");              Serial.println(normMethod);
-          Serial.print("  Deadband: ");               Serial.println(deadband);
+            // echo back
+            Serial.println("Photometry settings updated:");
+            Serial.print("  Baseline sample duration (ms): "); Serial.println(baselineWindowDuration);
+            Serial.print("  Normalization method: ");              Serial.println(normMethod);
+            Serial.print("  EPS_ON: ");  Serial.print(EPS_ON);
+            Serial.print("  EPS_OFF: "); Serial.println(EPS_OFF);
 
-          // flush any stray chars
-          while (Serial.available()) Serial.read();
+            // flush any stray chars
+            while (Serial.available()) Serial.read();
+          }
         }
       }
     }

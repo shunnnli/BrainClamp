@@ -174,12 +174,13 @@ def set_photometry_settings():
     try:
         baselineSampleDuration = float(entry_baselineSample.get())
         # Map the normalization string to an integer code:
-        mapping = {"RAW": 0, "ZSCORE": 1, "BASELINE": 2, "STD": 3}
+        mapping = {"RAW": 0, "ZSCORE": 1}
         normalizationMethod = mapping[norm_var.get()]
-        deadband = float(entry_deadband.get())
+        eps_on = float(entry_eps_on.get())
+        eps_off = float(entry_eps_off.get())
 
-        # Build a command: P<baselineSampleDuration>,<normalizationMethod>,<deadband>\n
-        cmd = "P" + f"{baselineSampleDuration},{normalizationMethod},{deadband},\n"
+        # Build a command: P<baselineSampleDuration>,<normalizationMethod>,<eps_on>,<eps_off>\n
+        cmd = "P" + f"{baselineSampleDuration},{normalizationMethod},{eps_on},{eps_off},\n"
         send_command(cmd)
         log_message("Photometry settings updated.")
         photo_info_label.config(text=(
@@ -187,7 +188,7 @@ def set_photometry_settings():
             f"  Low pass filter: 50 Hz\n"
             f"  Baseline sample:   {baselineSampleDuration} ms\n"
             f"  Normalization:     {norm_var.get()}\n"
-            f"  Deadband:         {deadband}"
+            f"  EPS_ON: {eps_on}  EPS_OFF: {eps_off}"
         ))
     except Exception as e:
         log_message("Error updating photometry settings: " + str(e))
@@ -693,10 +694,14 @@ norm_var = tk.StringVar(value=norm_options[0])  # default "RAW"
 norm_menu = tk.OptionMenu(root, norm_var, *norm_options)
 norm_menu.config(width=8)
 norm_menu.grid(row=6, column=5, padx=5, pady=5)
-tk.Label(root, text="Deadband:").grid(row=7, column=4, padx=5, pady=5)
-entry_deadband = tk.Entry(root)
-entry_deadband.insert(0, "1")
-entry_deadband.grid(row=7, column=5, padx=5, pady=5)
+tk.Label(root, text="EPS_ON:").grid(row=7, column=4, padx=5, pady=5)
+entry_eps_on = tk.Entry(root, width=10)
+entry_eps_on.insert(0, "1.5")
+entry_eps_on.grid(row=7, column=5, padx=5, pady=5, sticky='w')
+tk.Label(root, text="EPS_OFF:").grid(row=7, column=4, padx=5, pady=5, sticky='e')
+entry_eps_off = tk.Entry(root, width=10)
+entry_eps_off.insert(0, "0.8")
+entry_eps_off.grid(row=7, column=5, padx=5, pady=5, sticky='e')
 
 set_param_button = tk.Button(root, text="Set PID Parameters", command=set_parameters)
 set_param_button.grid(row=9, column=0, columnspan=4, padx=5, pady=5)
@@ -710,7 +715,7 @@ photo_info_label_text =(
     f"  Low pass filter: 50 Hz\n"
     f"  Baseline sample:   {float(entry_baselineSample.get())} ms\n"
     f"  Normalization:     {norm_var.get()}\n"
-    f"  Deadband:          {float(entry_deadband.get())}"
+    f"  EPS_ON: {float(entry_eps_on.get())}  EPS_OFF: {float(entry_eps_off.get())}"
 )
 photo_info_label = tk.Label(root, text=photo_info_label_text, justify=tk.LEFT)
 photo_info_label.grid(row=10, column=4, columnspan=n_col, padx=5, pady=5)

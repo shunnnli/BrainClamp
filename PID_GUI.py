@@ -694,14 +694,14 @@ norm_var = tk.StringVar(value=norm_options[0])  # default "RAW"
 norm_menu = tk.OptionMenu(root, norm_var, *norm_options)
 norm_menu.config(width=8)
 norm_menu.grid(row=6, column=5, padx=5, pady=5)
-tk.Label(root, text="EPS_ON:").grid(row=3, column=0, padx=5, pady=5, sticky='w')
+tk.Label(root, text="EPS_ON:").grid(row=7, column=4, padx=5, pady=5, sticky='w')
 entry_eps_on = tk.Entry(root, width=10)
 entry_eps_on.insert(0, "1.5")
-entry_eps_on.grid(row=3, column=1, padx=5, pady=5, sticky='w')
-tk.Label(root, text="EPS_OFF:").grid(row=4, column=0, padx=5, pady=5, sticky='w')
+entry_eps_on.grid(row=7, column=5, padx=5, pady=5, sticky='w')
+tk.Label(root, text="EPS_OFF:").grid(row=8, column=4, padx=5, pady=5, sticky='w')
 entry_eps_off = tk.Entry(root, width=10)
 entry_eps_off.insert(0, "0.8")
-entry_eps_off.grid(row=4, column=1, padx=5, pady=5, sticky='w')
+entry_eps_off.grid(row=8, column=5, padx=5, pady=5, sticky='w')
 
 set_param_button = tk.Button(root, text="Set PID Parameters", command=set_parameters)
 set_param_button.grid(row=9, column=0, columnspan=4, padx=5, pady=5)
@@ -709,7 +709,7 @@ info_label = tk.Label(root, text="PID Parameters: Not Set", justify=tk.LEFT)
 info_label.grid(row=10, column=0, columnspan=4, padx=5, pady=5)
 
 set_photo_button = tk.Button(root, text="Set Photometry Settings", command=set_photometry_settings)
-set_photo_button.grid(row=5, column=0, columnspan=2, padx=5, pady=5)
+set_photo_button.grid(row=9, column=4, columnspan=2, padx=5, pady=5)
 photo_info_label_text =(
     "           Photometry Settings\n"
     f"  Low pass filter: 50 Hz\n"
@@ -718,10 +718,10 @@ photo_info_label_text =(
     f"  EPS_ON: {float(entry_eps_on.get())}  EPS_OFF: {float(entry_eps_off.get())}"
 )
 photo_info_label = tk.Label(root, text=photo_info_label_text, justify=tk.LEFT)
-photo_info_label.grid(row=6, column=0, columnspan=2, padx=5, pady=5)
+photo_info_label.grid(row=10, column=4, columnspan=2, padx=5, pady=5)
 
 opt_text_box = tk.Text(root, height=10, width=170)
-opt_text_box.grid(row=7, column=0, columnspan=n_col, padx=5, pady=5, sticky='nsew')
+opt_text_box.grid(row=11, column=0, columnspan=n_col, padx=5, pady=5, sticky='nsew')
 
 entry_kp_inhib.insert(0, "50.0")
 entry_ki_inhib.insert(0, "1.0")

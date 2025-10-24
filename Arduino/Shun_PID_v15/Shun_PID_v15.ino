@@ -22,8 +22,8 @@ double constantInhib = 0.0;  // constant output for inhibition channel
 double constantExcite = 0.0; // constant output for excitation channel
 
 // exponential output
-float k_inhibit = 5; 
-float k_excite = 2;
+float k_inhibit = 2; 
+float k_excite = 1;
 float expo_inhibit;
 float expo_excite;
 float expo;
@@ -76,8 +76,8 @@ double control_inhibit;  // Final control value for inhibition laser
 double control_excite;   // Final control value for excitation laser
 
 // Default PID parameters for inhibition (reverse action) & excitation (direct)
-double Kp_inhibit = 9, Ki_inhibit = 8.6, Kd_inhibit = 55;
-double Kp_excite = 10, Ki_excite = 15, Kd_excite = 100;
+double Kp_inhibit = 20, Ki_inhibit = 0, Kd_inhibit = 1;
+double Kp_excite = 20, Ki_excite = 0, Kd_excite = 0.5;
 double PIDSampleTime = 1;  // in ms
 float Max_inhibit = 255;
 float Max_excite = 255;

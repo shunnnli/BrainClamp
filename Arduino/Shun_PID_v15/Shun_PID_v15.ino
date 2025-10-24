@@ -12,8 +12,6 @@
 bool onlineTuningMode = false;  // false = offline mode; true = online tuning mode
 bool startAutomatic = false;    // Set to true for AUTOMATIC startup, false for MANUAL (requires pressing '8')
 bool debugMode = false;
-bool baselineResetMode = false;
-unsigned long baselineResetStartTime = 0;
 unsigned long lastClampStatusTime = 0;
 unsigned long PIDStartTime = 0;
 
@@ -233,7 +231,7 @@ void setup() {
   Serial.println("---------------------PhotometryClamp---------------------");
   Serial.println("Toggles: online tuning: 't'");
   Serial.println("Command: start clamping: 8  | Stop clamping: 9");
-  Serial.println("         Reset baseline: R  (propagates current value to baseline window)");
+  Serial.println("         Reset baseline: R  (instant reset with current value)");
   Serial.println("---------------------------------------------------------");
 }
 
@@ -295,15 +293,15 @@ void loop() {
       } else {
         target = currentValue;
       }
-      targetLocked = true;  // Lock target during baseline reset
+      // Reset PID controllers to clear integral windup
+      myPID_inhibit.SetMode(MANUAL);
+      myPID_excite.SetMode(MANUAL);
+      // This clears the integral term and resets internal state
+      myPID_inhibit.SetMode(AUTOMATIC);
+      myPID_excite.SetMode(AUTOMATIC);
       
-      // Start baseline reset mode for 60 seconds
-      baselineResetMode = true;
-      baselineResetStartTime = millis();
-      
-      Serial.print("Baseline reset completed. Target locked at: ");
+      Serial.print("Baseline reset completed. Target set to: ");
       Serial.println(target, 2);
-      Serial.println("PID remains active. Target will unlock after 60 seconds.");
 
       // Flush any remaining characters so stray digits aren't misinterpreted.
       while (Serial.available()) {
@@ -656,19 +654,6 @@ void loop() {
         control_excite = 0;
       }
 
-      // If in baseline reset mode, check if 60s has passed to unlock target
-      if (baselineResetMode) {
-        if (millis() - baselineResetStartTime >= 60000) {
-          baselineResetMode = false;  // Reset the mode after 60 seconds
-          targetLocked = false;  // Unlock target to follow new baseline
-          Serial.print("BASELINE_STATS:");
-          Serial.print(getBaselineMean(),1);
-          Serial.print(",");
-          Serial.print(getBaselineStd(),1);
-          Serial.println(" - Target now follows baseline");
-        }
-        // PID continues to run normally with locked target during collection
-      }
 
       // Write outputs to respective pins
       analogWrite(ControlPin_inhibit, (int)control_inhibit);

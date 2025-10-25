@@ -14,7 +14,7 @@ wait_time = 30
 
 while time.time() - start_time <= wait_time:
     try:
-        ser = serial.Serial('COM5', 115200, timeout=1)
+        ser = serial.Serial('COM5', 500000, timeout=1)
         print("\nSerial connection opened")
         connected = True
         break

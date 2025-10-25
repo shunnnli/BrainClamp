@@ -220,7 +220,7 @@ void fastLog(double target, double input, double control_inhibit, double control
 // Setup
 // -----------------------
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(500000);
 
   pinMode(InputPin, INPUT);
   pinMode(ControlPin_inhibit, OUTPUT);

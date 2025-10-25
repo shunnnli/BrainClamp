@@ -203,15 +203,37 @@ def start_reset_timer():
     reset_timer_event = threading.Event()
     
     def reset_sequence(cancel_event):
-        send_command("R\n")  # Lock target and reset baseline for 60s
-        log_message("Target locked to current signal. PID still active. Collecting new baseline for 60 seconds...")
-        for i in range(60, 0, -1):
+        send_command("R\n")  # Reset baseline and PID
+        log_message("Reset command sent. Waiting for target value...")
+        
+        # Wait for the reset response from Arduino
+        start_time = time.time()
+        target_value = None
+        while time.time() - start_time < 5:  # Wait up to 5 seconds for response
             if cancel_event.is_set():
                 return
-            root.after(0, progress_label.config, {"text": f"Collecting baseline (PID ON): {i} s remaining"})
-            time.sleep(1)
-        if not cancel_event.is_set():
-            root.after(0, progress_label.config, {"text": f"Baseline collection complete - target now follows baseline"})
+            try:
+                if ser.in_waiting:
+                    line = ser.readline().decode('utf-8', errors='ignore').strip()
+                    if "Target set to:" in line:
+                        # Extract target value from Arduino response
+                        try:
+                            target_value = line.split("Target set to:")[1].strip()
+                            log_message(f"Reset completed. Target set to: {target_value}")
+                            break
+                        except:
+                            log_message("Reset completed. Target value received.")
+                            break
+                    elif line:  # Log any other responses
+                        log_message(line)
+            except:
+                pass
+            time.sleep(0.1)
+        
+        if target_value is None:
+            log_message("Reset completed. Target value not received.")
+        
+        root.after(0, progress_label.config, {"text": "Reset completed - system ready for control"})
     threading.Thread(target=reset_sequence, args=(reset_timer_event,), daemon=True).start()
 
 # -----------------------
@@ -241,11 +263,7 @@ def read_clamp_status():
                 continue
 
             if debugModeGUI:
-                # In debug mode, every 5 seconds flush the serial buffer
-                if time.time() - lastFlushTime > 5:
-                    ser.reset_input_buffer()
-                    lastFlushTime = time.time()
-                # Proceed to read whatever is available
+                # In debug mode, read fastlog results and display them
                 if ser.in_waiting:
                     line = ser.readline().decode('utf-8', errors='ignore').strip()
                     if line:  # Only log nonempty lines

@@ -185,6 +185,38 @@ void resetBaseline() {
 
 
 // -----------------------
+// Fast logging function
+// -----------------------
+// file scope
+char line[64];
+static uint32_t lastLog = 0;
+
+void fastLog(double target, double input, double control_inhibit, double control_excite) {
+  uint32_t now = millis();
+  if (now - lastLog < 10) return;          // ~100 Hz; adjust as needed
+  lastLog = now;
+
+  // scale to avoid float prints
+  uint16_t u_target  = (uint16_t)target;
+  uint16_t u_input  = (uint16_t)input;
+  uint16_t u_inhi  = (uint16_t)control_inhibit;
+  uint16_t u_exci  = (uint16_t)control_excite;
+
+  // compact, still human-readable
+  int n = snprintf(line, sizeof(line),
+                   "T:%u,I:%u,Ui:%u,Ue:%u\n", (unsigned)u_target, (unsigned)u_input, (unsigned)u_inhi, (unsigned)u_exci);
+
+  if (n > 0) {
+    // best-effort, non-blocking
+    if ((int)Serial.availableForWrite() >= n) {
+      Serial.write((uint8_t*)line, (size_t)n);
+    }
+    // else: drop this frame to protect control timing
+  }
+}
+
+
+// -----------------------
 // Setup
 // -----------------------
 void setup() {
@@ -666,17 +698,7 @@ void loop() {
         double squaredError = e * e;
         Serial.println(squaredError);
       } else if (debugMode) {
-        // Print real-time values
-        //Serial.print("  Target: "); Serial.print(target, 1);
-        //Serial.print("  Signal: "); Serial.print(signal,1);
-        //Serial.print("  Deadband: "); Serial.print(deadband,1);
-        //Serial.print("  Input: "); Serial.println(input, 1);
-        //Serial.print("  Control: "); Serial.println(output_inhibit, 1);
-        //Serial.print("  Baseline Std: "); Serial.print(baseline_std, 1);
-        //Serial.print("  Baseline: "); Serial.println(baseline, 1);
-        Serial.print("  Error: "); Serial.print(e, 1);
-        Serial.print("  Ctrl (inhi): "); Serial.print(control_inhibit, 1);
-        Serial.print("  Ctrl (exci): "); Serial.println(control_excite, 1);
+        fastLog(target, input, control_inhibit, control_excite);
       } else {
         // Send clamp status to GUI
         Serial.print("CLAMP:");

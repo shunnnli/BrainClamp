@@ -157,7 +157,6 @@ void protocol_overlay_exc_bg_with_inhib_mid() {
     }
     
     allOff();
-    Serial.println("# ITI...");
     waitWithAbort(ITI_MS);
   }
   

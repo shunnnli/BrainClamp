@@ -144,11 +144,11 @@ void manual_inhibition_max_2s() {
 }
 
 void generatePWMArrays() {
-  // Generate evenly spaced PWM values from 10 to max value
-  // For 5 levels, creates: fraction = 1/6, 2/6, 3/6, 4/6, 5/6
-  // This gives values evenly spaced between 10 and max
+  // Generate evenly spaced PWM values from 10 to max value (inclusive)
+  // For 5 levels, creates: fraction = 0.0, 0.25, 0.50, 0.75, 1.0
+  // This gives values: 10, and 4 intermediate values up to max
   for (int i = 0; i < N_LEVELS; i++) {
-    float fraction = (float)(i + 1) / (float)(N_LEVELS + 1);
+    float fraction = (float)i / (float)(N_LEVELS - 1);
     excite_pwm[i] = 10 + (int)(fraction * (max_excite - 10) + 0.5);
     inhibit_pwm[i] = 10 + (int)(fraction * (max_inhibit - 10) + 0.5);
   }
@@ -267,7 +267,8 @@ void loop() {
         Serial.print(", Rep ");
         Serial.print(currentRepeat + 1);
         Serial.print("/");
-        Serial.println(REPEATS_PER_LEVEL);
+        Serial.print(REPEATS_PER_LEVEL);
+        Serial.println(")");
         
         waitWithAbort(STEP_DURATION_MS);
         allOff();
@@ -304,7 +305,8 @@ void loop() {
         Serial.print(", Rep ");
         Serial.print(currentRepeat + 1);
         Serial.print("/");
-        Serial.println(REPEATS_PER_LEVEL);
+        Serial.print(REPEATS_PER_LEVEL);
+        Serial.println(")");
         
         waitWithAbort(STEP_DURATION_MS);
         allOff();
@@ -337,7 +339,8 @@ void loop() {
         Serial.print(", Rep ");
         Serial.print(overlayRepeat + 1);
         Serial.print("/");
-        Serial.println(REPEATS_PER_LEVEL);
+        Serial.print(REPEATS_PER_LEVEL);
+        Serial.println(")");
         
         unsigned long start = millis();
         while (!abortFlag && (millis() - start < OVERLAY_TOTAL_MS)) {
@@ -386,7 +389,8 @@ void loop() {
         Serial.print(", Rep ");
         Serial.print(overlayRepeat + 1);
         Serial.print("/");
-        Serial.println(REPEATS_PER_LEVEL);
+        Serial.print(REPEATS_PER_LEVEL);
+        Serial.println(")");
         
         unsigned long start = millis();
         while (!abortFlag && (millis() - start < OVERLAY_TOTAL_MS)) {

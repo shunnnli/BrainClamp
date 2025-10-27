@@ -3,13 +3,12 @@
 // Based on OptoSweeps structure with simplified state machine
 
 #define Idle 0
-#define Baseline 1
-#define ExciteStepSweep 2
-#define InhibitStepSweep 3
-#define OverlayExcInh 4
-#define OverlayInhExc 5
-#define ExciteManual 6
-#define InhibitManual 7
+#define ExciteStepSweep 1
+#define InhibitStepSweep 2
+#define OverlayExcInh 3
+#define OverlayInhExc 4
+#define ExciteManual 5
+#define InhibitManual 6
 
 // Pin definitions
 const byte InputPin = A1;
@@ -21,7 +20,6 @@ const byte FakeGND = A2;
 const byte FakeVCC = A3;
 
 // Config
-const unsigned long BASELINE_MS = 5UL * 60UL * 1000UL; // 5 min
 const unsigned long STEP_DURATION_MS = 3000;  // 3 s
 const unsigned long ITI_MS = 5000;            // 5 s
 const int REPEATS_PER_LEVEL = 5;
@@ -49,6 +47,9 @@ unsigned long ITI_start = 0;
 // Step sweep tracking
 int currentRepeat = 0;
 int currentLevel = 0;
+
+// Overlay tracking
+int overlayRepeat = 0;
 
 // State variables for protocols
 boolean abortFlag = false;
@@ -84,34 +85,6 @@ void waitWithAbort(unsigned long duration_ms) {
 }
 
 // Protocol implementations
-void protocol_baseline() {
-  abortFlag = false;
-  allOff();
-  Serial.println("# BEGIN BASELINE (5 min)");
-  Serial.println("# Progress will be shown every 30 seconds");
-  unsigned long start = millis();
-  
-  while (!abortFlag && (millis() - start < BASELINE_MS)) {
-    if (Serial.available()) {
-      char c = Serial.read();
-      if (c == 'x' || c == 'X') { abortFlag = true; }
-    }
-    // Show progress every 30 seconds
-    unsigned long elapsed = (millis() - start) / 1000;
-    if (elapsed > 0 && elapsed % 30 == 0) {
-      Serial.print("# Baseline: ");
-      Serial.print(elapsed / 60);
-      Serial.print(" min ");
-      Serial.print(elapsed % 60);
-      Serial.println(" sec");
-      delay(1000); // Prevent multiple prints in same second
-    }
-  }
-  
-  allOff();
-  Serial.println("# END BASELINE");
-}
-
 void start_excite_step_sweep() {
   abortFlag = false;
   Serial.println("# BEGIN EXCITE STEP SWEEP");
@@ -130,73 +103,22 @@ void start_inhibit_step_sweep() {
   state = InhibitStepSweep;
 }
 
-void protocol_overlay_exc_bg_with_inhib_mid() {
+void start_overlay_exc_bg_with_inhib_mid() {
   abortFlag = false;
   Serial.println("# BEGIN OVERLAY (EXC bg @ max + INH mid varying levels)");
-  
-  // Test each inhibit power level
-  for (int level = 0; level < N_LEVELS && !abortFlag; level++) {
-    Serial.print("# Testing inhibit PWM: ");
-    Serial.println(inhibit_pwm[level]);
-    unsigned long start = millis();
-    
-    while (!abortFlag && (millis() - start < OVERLAY_TOTAL_MS)) {
-      unsigned long dt = millis() - start;
-      
-      setExcite(max_excite);
-      if (dt >= OVERLAY_START_MS && dt < (OVERLAY_START_MS + OVERLAY_MIDDLE_MS)) {
-        setInhibit(inhibit_pwm[level]);
-      } else {
-        setInhibit(0);
-      }
-      
-      if (Serial.available()) {
-        char c = Serial.read();
-        if (c == 'x' || c == 'X') { abortFlag = true; }
-      }
-    }
-    
-    allOff();
-    waitWithAbort(ITI_MS);
-  }
-  
-  allOff();
-  Serial.println("# END OVERLAY (EXC bg + INH mid)");
+  overlayRepeat = 0;
+  currentLevel = 0;
+  ITI_start = millis();
+  state = OverlayExcInh;
 }
 
-void protocol_overlay_inh_bg_with_exc_mid() {
+void start_overlay_inh_bg_with_exc_mid() {
   abortFlag = false;
   Serial.println("# BEGIN OVERLAY (INH bg @ max + EXC mid varying levels)");
-  
-  // Test each excite power level
-  for (int level = 0; level < N_LEVELS && !abortFlag; level++) {
-    Serial.print("# Testing excite PWM: ");
-    Serial.println(excite_pwm[level]);
-    unsigned long start = millis();
-    
-    while (!abortFlag && (millis() - start < OVERLAY_TOTAL_MS)) {
-      unsigned long dt = millis() - start;
-      
-      setInhibit(max_inhibit);
-      if (dt >= OVERLAY_START_MS && dt < (OVERLAY_START_MS + OVERLAY_MIDDLE_MS)) {
-        setExcite(excite_pwm[level]);
-      } else {
-        setExcite(0);
-      }
-      
-      if (Serial.available()) {
-        char c = Serial.read();
-        if (c == 'x' || c == 'X') { abortFlag = true; }
-      }
-    }
-    
-    allOff();
-    Serial.println("# ITI...");
-    waitWithAbort(ITI_MS);
-  }
-  
-  allOff();
-  Serial.println("# END OVERLAY (INH bg + EXC mid)");
+  overlayRepeat = 0;
+  currentLevel = 0;
+  ITI_start = millis();
+  state = OverlayInhExc;
 }
 
 void manual_excitation_max_2s() {
@@ -235,14 +157,16 @@ void generatePWMArrays() {
 void printHelp() {
   Serial.println();
   Serial.println(F("==== Shun_Tune_v2 ===="));
-  Serial.println(F("  '1' : 5 min baseline"));
-  Serial.println(F("  '2' : EXCITE step sweep (3s steps, 5s ITI, 5 repeats)"));
-  Serial.println(F("  '3' : INHIBIT step sweep (3s steps, 5s ITI, 5 repeats)"));
-  Serial.println(F("  '4' : Background EXCITE @ max + 3s INHIBIT overlay (tests 5 levels)"));
-  Serial.println(F("  '9' : Background INHIBIT @ max + 3s EXCITE overlay (tests 5 levels)"));
+  Serial.println(F("Step sweeps (3s steps, 5s ITI, 5 repeats):"));
+  Serial.println(F("  '1' : EXCITE step sweep"));
+  Serial.println(F("  '2' : INHIBIT step sweep"));
+  Serial.println(F("Overlay (9s background @ max + 3s middle varying levels, 5 repeats):"));
+  Serial.println(F("  '3' : Background EXCITE @ max + 3s INHIBIT overlay"));
+  Serial.println(F("  '4' : Background INHIBIT @ max + 3s EXCITE overlay"));
+  Serial.println(F("Manual (2s @ max):"));
   char msg1[64], msg2[64];
-  snprintf(msg1, sizeof(msg1), "  '5' : Manual EXCITE 2s @ %d", max_excite);
-  snprintf(msg2, sizeof(msg2), "  '6' : Manual INHIBIT 2s @ %d", max_inhibit);
+  snprintf(msg1, sizeof(msg1), "  '5' : Manual EXCITE @ %d", max_excite);
+  snprintf(msg2, sizeof(msg2), "  '6' : Manual INHIBIT @ %d", max_inhibit);
   Serial.println(msg1);
   Serial.println(msg2);
   Serial.println(F("  'x' : Abort / outputs to zero"));
@@ -295,21 +219,16 @@ void loop() {
         SerialInput = Serial.read();
         switch (SerialInput) {
           case '1': 
-            state = Baseline;
-            break;
-          case '2': 
             start_excite_step_sweep();
             break;
-          case '3': 
+          case '2': 
             start_inhibit_step_sweep();
             break;
-          case '4': 
-            protocol_overlay_exc_bg_with_inhib_mid();
-            state = Idle;
+          case '3': 
+            start_overlay_exc_bg_with_inhib_mid();
             break;
-          case '9': 
-            protocol_overlay_inh_bg_with_exc_mid();
-            state = Idle;
+          case '4': 
+            start_overlay_inh_bg_with_exc_mid();
             break;
           case '5': 
             manual_excitation_max_2s();
@@ -331,11 +250,6 @@ void loop() {
             break;
         }
       }
-      break;
-      
-    case Baseline:
-      protocol_baseline();
-      state = Idle;
       break;
       
     case ExciteStepSweep:
@@ -412,13 +326,112 @@ void loop() {
       }
       break;
       
+    case OverlayExcInh:
+      if (millis() - ITI_start > ITI_MS) {
+        Serial.print("# OVERLAY EXC+INH: inhibit PWM ");
+        Serial.print(inhibit_pwm[currentLevel]);
+        Serial.print(" (Level ");
+        Serial.print(currentLevel + 1);
+        Serial.print("/");
+        Serial.print(N_LEVELS);
+        Serial.print(", Rep ");
+        Serial.print(overlayRepeat + 1);
+        Serial.print("/");
+        Serial.println(REPEATS_PER_LEVEL);
+        
+        unsigned long start = millis();
+        while (!abortFlag && (millis() - start < OVERLAY_TOTAL_MS)) {
+          unsigned long dt = millis() - start;
+          
+          setExcite(max_excite);
+          if (dt >= OVERLAY_START_MS && dt < (OVERLAY_START_MS + OVERLAY_MIDDLE_MS)) {
+            setInhibit(inhibit_pwm[currentLevel]);
+          } else {
+            setInhibit(0);
+          }
+          
+          if (Serial.available()) {
+            char c = Serial.read();
+            if (c == 'x' || c == 'X') { abortFlag = true; }
+          }
+        }
+        
+        allOff();
+        
+        // Move to next level or repeat
+        currentLevel++;
+        if (currentLevel >= N_LEVELS) {
+          currentLevel = 0;
+          overlayRepeat++;
+          if (overlayRepeat >= REPEATS_PER_LEVEL) {
+            Serial.println("# END OVERLAY (EXC bg + INH mid)");
+            allOff();
+            state = Idle;
+            break;
+          }
+        }
+        
+        ITI_start = millis();
+      }
+      break;
+      
+    case OverlayInhExc:
+      if (millis() - ITI_start > ITI_MS) {
+        Serial.print("# OVERLAY INH+EXC: excite PWM ");
+        Serial.print(excite_pwm[currentLevel]);
+        Serial.print(" (Level ");
+        Serial.print(currentLevel + 1);
+        Serial.print("/");
+        Serial.print(N_LEVELS);
+        Serial.print(", Rep ");
+        Serial.print(overlayRepeat + 1);
+        Serial.print("/");
+        Serial.println(REPEATS_PER_LEVEL);
+        
+        unsigned long start = millis();
+        while (!abortFlag && (millis() - start < OVERLAY_TOTAL_MS)) {
+          unsigned long dt = millis() - start;
+          
+          setInhibit(max_inhibit);
+          if (dt >= OVERLAY_START_MS && dt < (OVERLAY_START_MS + OVERLAY_MIDDLE_MS)) {
+            setExcite(excite_pwm[currentLevel]);
+          } else {
+            setExcite(0);
+          }
+          
+          if (Serial.available()) {
+            char c = Serial.read();
+            if (c == 'x' || c == 'X') { abortFlag = true; }
+          }
+        }
+        
+        allOff();
+        
+        // Move to next level or repeat
+        currentLevel++;
+        if (currentLevel >= N_LEVELS) {
+          currentLevel = 0;
+          overlayRepeat++;
+          if (overlayRepeat >= REPEATS_PER_LEVEL) {
+            Serial.println("# END OVERLAY (INH bg + EXC mid)");
+            allOff();
+            state = Idle;
+            break;
+          }
+        }
+        
+        ITI_start = millis();
+      }
+      break;
+      
     default:
       state = Idle;
       break;
   }
   
   // Check for abort during protocols
-  if (state == ExciteStepSweep || state == InhibitStepSweep) {
+  if (state == ExciteStepSweep || state == InhibitStepSweep || 
+      state == OverlayExcInh || state == OverlayInhExc) {
     if (Serial.available()) {
       char c = Serial.read();
       if (c == 'x' || c == 'X') {

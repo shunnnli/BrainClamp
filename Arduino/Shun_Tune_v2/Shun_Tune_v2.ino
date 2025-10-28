@@ -20,13 +20,13 @@ const byte FakeGND = A2;
 const byte FakeVCC = A3;
 
 // Config
-const unsigned long STEP_DURATION_MS = 3000;  // 3 s
-const unsigned long ITI_MS = 5000;            // 5 s
+const unsigned long STEP_DURATION_MS = 2000;  
+const unsigned long ITI_MS = 5000;           
 const int REPEATS_PER_LEVEL = 5;
-const unsigned long OVERLAY_TOTAL_MS = 9000;  // 9 s
-const unsigned long OVERLAY_MIDDLE_MS = 3000; // 3 s
+const unsigned long OVERLAY_MIDDLE_MS = 2000;
+const unsigned long OVERLAY_TOTAL_MS = OVERLAY_MIDDLE_MS * 3;
 const unsigned long OVERLAY_START_MS = (OVERLAY_TOTAL_MS - OVERLAY_MIDDLE_MS) / 2;
-const unsigned long MANUAL_STIM_MS = 2000;   // 2 s
+const unsigned long MANUAL_STIM_MS = 1000;  
 
 // Max PWM values
 const int max_excite = 50;
@@ -160,9 +160,9 @@ void printHelp() {
   Serial.println(F("Step sweeps (3s steps, 5s ITI, 5 repeats):"));
   Serial.println(F("  '1' : EXCITE step sweep"));
   Serial.println(F("  '2' : INHIBIT step sweep"));
-  Serial.println(F("Overlay (9s background @ max + 3s middle varying levels, 5 repeats):"));
-  Serial.println(F("  '3' : Background EXCITE @ max + 3s INHIBIT overlay"));
-  Serial.println(F("  '4' : Background INHIBIT @ max + 3s EXCITE overlay"));
+  Serial.println(F("Overlay (6s background @ max + 2s middle varying levels, 5 repeats):"));
+  Serial.println(F("  '3' : Background EXCITE @ max + 2s INHIBIT overlay"));
+  Serial.println(F("  '4' : Background INHIBIT @ max + 2s EXCITE overlay"));
   Serial.println(F("Manual (2s @ max):"));
   char msg1[64], msg2[64];
   snprintf(msg1, sizeof(msg1), "  '5' : Manual EXCITE @ %d", max_excite);

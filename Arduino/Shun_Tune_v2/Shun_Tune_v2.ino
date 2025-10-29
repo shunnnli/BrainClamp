@@ -28,9 +28,11 @@ const unsigned long OVERLAY_TOTAL_MS = OVERLAY_MIDDLE_MS * 3;
 const unsigned long OVERLAY_START_MS = (OVERLAY_TOTAL_MS - OVERLAY_MIDDLE_MS) / 2;
 const unsigned long MANUAL_STIM_MS = 1000;  
 
-// Max PWM values
-const int max_excite = 50;
-const int max_inhibit = 80;
+// Max PWM values (1mW, 8mW)
+const int max_excite = 70;
+const int max_inhibit = 100;
+const int min_excite = 5;
+const int min_inhibit = 22;
 const int N_LEVELS = 5;
 
 // PWM arrays (generated automatically from max values)
@@ -144,13 +146,13 @@ void manual_inhibition_max_2s() {
 }
 
 void generatePWMArrays() {
-  // Generate evenly spaced PWM values from 10 to max value (inclusive)
+  // Generate evenly spaced PWM values from 30 to max value (inclusive)
   // For 5 levels, creates: fraction = 0.0, 0.25, 0.50, 0.75, 1.0
   // This gives values: 10, and 4 intermediate values up to max
   for (int i = 0; i < N_LEVELS; i++) {
     float fraction = (float)i / (float)(N_LEVELS - 1);
-    excite_pwm[i] = 10 + (int)(fraction * (max_excite - 10) + 0.5);
-    inhibit_pwm[i] = 10 + (int)(fraction * (max_inhibit - 10) + 0.5);
+    excite_pwm[i] = min_excite + (int)(fraction * (max_excite - 10) + 0.5);
+    inhibit_pwm[i] = min_inhibit + (int)(fraction * (max_inhibit - 10) + 0.5);
   }
 }
 

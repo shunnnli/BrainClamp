@@ -1,149 +1,190 @@
-Sent command: T20.0,0.0,5.0,20.0,0.0,0.5,100.0,45.0,0,0,4.0,1.0,
-Sent command: P3000.0,0,0.5,0.3,
+Sent command: 9
+Sent command: T12.5,0.0,0.17,5.0,10.0,0.05,70.0,50.0,0,0,2.0,1.0,
+Sent command: 8
+Command sent: PID ON
+Sent command: T12.5,0.0,0.17,5.0,10.0,0.05,70.0,50.0,0,0,2.0,1.0,
+Sent command: P3000.0,0,1.0,0.8,
+Photometry settings updated.
+Sent command: P3000.0,0,0.5,0.5,
 Photometry settings updated.
 Sent command: D1
 DEBUG: CLAMP:1
-DEBUG: Error: 0.6  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: 1.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 1.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 3.6  Ctrl (inhi): 92.8  Ctrl (exci): 0.5
-DEBUG: Error: 0.6  Ctrl (inhi): 52.1  Ctrl (exci): 0.5
-DEBUG: Error: -0.4  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: -0.4  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 32.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 45.5
-DEBUG: Error: -0.4  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 32.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 32.5
-DEBUG: Error: -0.4  Ctrl (inhi): 0.5  Ctrl (exci): 11.4
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: -2.4  Ctrl (inhi): 0.5  Ctrl (exci): 45.5
-DEBUG: Error: -2.4  Ctrl (inhi): 0.5  Ctrl (exci): 45.5
-DEBUG: Error: -2.4  Ctrl (inhi): 0.5  Ctrl (exci): 45.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 32.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 32.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 32.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 32.5
-DEBUG: Error: -2.4  Ctrl (inhi): 0.5  Ctrl (exci): 45.5
-DEBUG: Error: -0.4  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: 0.6  Ctrl (inhi): 52.1  Ctrl (exci): 0.5
-DEBUG: Error: 1.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 1.6  Ctrl (inhi): 73.6  Ctrl (exci): 0.5
-DEBUG: Error: 1.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 0.6  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: 1.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 0.6  Ctrl (inhi): 52.1  Ctrl (exci): 0.5
-DEBUG: Error: 0.6  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: 2.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 0.6  Ctrl (inhi): 52.1  Ctrl (exci): 0.5
-DEBUG: Error: 1.6  Ctrl (inhi): 73.6  Ctrl (exci): 0.5
-DEBUG: Error: 0.6  Ctrl (inhi): 52.1  Ctrl (exci): 0.5
-DEBUG: Error: 0.6  Ctrl (inhi): 52.1  Ctrl (exci): 0.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 32.5
-DEBUG: Error: -0.4  Ctrl (inhi): 0.5  Ctrl (exci): 11.4
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 45.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 32.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 45.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 32.5
-DEBUG: Error: -2.4  Ctrl (inhi): 0.5  Ctrl (exci): 45.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 45.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 32.5
-DEBUG: Error: -2.4  Ctrl (inhi): 0.5  Ctrl (exci): 45.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 32.5
-DEBUG: Error: -3.4  Ctrl (inhi): 0.5  Ctrl (exci): 45.5
-DEBUG: Error: -0.4  Ctrl (inhi): 0.5  Ctrl (exci): 11.4
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 32.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 45.5
-DEBUG: Error: -0.4  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: -0.4  Ctrl (inhi): 0.5  Ctrl (exci): 11.4
-DEBUG: Error: 0.6  Ctrl (inhi): 52.1  Ctrl (exci): 0.5
-DEBUG: Error: 0.6  Ctrl (inhi): 52.1  Ctrl (exci): 0.5
-DEBUG: Error: 1.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 1.6  Ctrl (inhi): 73.6  Ctrl (exci): 0.5
-DEBUG: Error: 1.6  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: 1.6  Ctrl (inhi): 73.6  Ctrl (exci): 0.5
-DEBUG: Error: 1.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 1.6  Ctrl (inhi): 73.6  Ctrl (exci): 0.5
-DEBUG: Error: 1.6  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: 1.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 1.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 0.6  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: 0.6  Ctrl (inhi): 52.1  Ctrl (exci): 0.5
-DEBUG: Error: 0.6  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 32.5
-DEBUG: Error: -0.4  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: 1.6  Ctrl (inhi): 73.6  Ctrl (exci): 0.5
-DEBUG: Error: -0.4  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: -0.4  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 32.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 45.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 45.5
-DEBUG: Error: -0.4  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: -0.4  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: -0.4  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 45.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 32.5
-DEBUG: Error: -2.4  Ctrl (inhi): 0.5  Ctrl (exci): 45.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 32.5
-DEBUG: Error: -2.4  Ctrl (inhi): 0.5  Ctrl (exci): 45.5
-DEBUG: Error: -0.4  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: -0.4  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 45.5
-DEBUG: Error: -0.4  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: 1.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 0.6  Ctrl (inhi): 52.1  Ctrl (exci): 0.5
-DEBUG: Error: -0.4  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: -0.4  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: 1.6  Ctrl (inhi): 73.6  Ctrl (exci): 0.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 32.5
-DEBUG: Error: 0.6  Ctrl (inhi): 52.1  Ctrl (exci): 0.5
-DEBUG: Error: -0.4  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: 0.6  Ctrl (inhi): 52.1  Ctrl (exci): 0.5
-DEBUG: Error: 0.6  Ctrl (inhi): 52.1  Ctrl (exci): 0.5
-DEBUG: Error: 0.6  Ctrl (inhi): 52.1  Ctrl (exci): 0.5
-DEBUG: Error: 0.6  Ctrl (inhi): 52.1  Ctrl (exci): 0.5
-DEBUG: Error: 0.6  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: 1.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 1.6  Ctrl (inhi): 73.6  Ctrl (exci): 0.5
-DEBUG: Error: 1.6  Ctrl (inhi): 73.6  Ctrl (exci): 0.5
-DEBUG: Error: 0.6  Ctrl (inhi): 52.1  Ctrl (exci): 0.5
-DEBUG: Error: 0.6  Ctrl (inhi): 52.1  Ctrl (exci): 0.5
-DEBUG: Error: 0.6  Ctrl (inhi): 52.1  Ctrl (exci): 0.5
-DEBUG: Error: 1.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 0.6  Ctrl (inhi): 52.1  Ctrl (exci): 0.5
-DEBUG: Error: 1.6  Ctrl (inhi): 73.6  Ctrl (exci): 0.5
-DEBUG: Error: 0.6  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: -1.4  Ctrl (inhi): 0.5  Ctrl (exci): 32.5
-DEBUG: Error: -0.4  Ctrl (inhi): 0.5  Ctrl (exci): 11.4
-DEBUG: Error: 2.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 3.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 5.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 9.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 12.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 15.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 19.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 21.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 22.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 24.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 24.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 25.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 25.6  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: 25.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 23.6  Ctrl (inhi): 0.5  Ctrl (exci): 0.5
-DEBUG: Error: 24.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 25.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 24.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 24.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 23.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 23.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 22.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 22.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 21.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
-DEBUG: Error: 22.6  Ctrl (inhi): 100.5  Ctrl (exci): 0.5
+DEBUG: CLAMP:1
+DEBUG: CLAMP:1
+DEBUG: CLAMP:1
+DEBUG: CLAMP:1
+DEBUG: CLAMP:1
+DEBUG: CLAMP:1
+DEBUG: CLAMP:1
+DEBUG: T:73,I:66,Ui:0,Ue:40
+DEBUG: T:73,I:75,Ui:40,Ue:0
+DEBUG: T:73,I:69,Ui:0,Ue:0
+DEBUG: T:73,I:72,Ui:0,Ue:0
+DEBUG: T:73,I:74,Ui:24,Ue:0
+DEBUG: T:73,I:73,Ui:0,Ue:0
+DEBUG: T:73,I:70,Ui:0,Ue:22
+DEBUG: T:73,I:75,Ui:40,Ue:0
+DEBUG: T:73,I:67,Ui:0,Ue:36
+DEBUG: T:73,I:68,Ui:0,Ue:32
+DEBUG: T:73,I:74,Ui:24,Ue:0
+DEBUG: T:73,I:75,Ui:40,Ue:0
+DEBUG: T:73,I:84,Ui:70,Ue:0
+DEBUG: T:73,I:82,Ui:0,Ue:0
+DEBUG: T:73,I:88,Ui:70,Ue:0
+DEBUG: T:73,I:91,Ui:70,Ue:0
+DEBUG: T:73,I:106,Ui:70,Ue:0
+DEBUG: T:73,I:104,Ui:70,Ue:0
+DEBUG: T:73,I:102,Ui:0,Ue:0
+DEBUG: T:73,I:108,Ui:70,Ue:0
+DEBUG: T:73,I:102,Ui:0,Ue:0
+DEBUG: T:73,I:107,Ui:70,Ue:0
+DEBUG: T:73,I:100,Ui:0,Ue:0
+DEBUG: T:73,I:101,Ui:70,Ue:0
+DEBUG: T:73,I:102,Ui:70,Ue:0
+DEBUG: T:73,I:104,Ui:70,Ue:0
+DEBUG: T:73,I:101,Ui:0,Ue:0
+DEBUG: T:73,I:102,Ui:70,Ue:0
+DEBUG: T:73,I:100,Ui:70,Ue:0
+DEBUG: T:73,I:100,Ui:70,Ue:0
+DEBUG: T:73,I:99,Ui:70,Ue:0
+DEBUG: T:73,I:97,Ui:70,Ue:0
+DEBUG: T:73,I:97,Ui:70,Ue:0
+DEBUG: T:73,I:91,Ui:0,Ue:0
+DEBUG: T:73,I:90,Ui:0,Ue:0
+DEBUG: T:73,I:96,Ui:70,Ue:0
+DEBUG: T:73,I:86,Ui:0,Ue:0
+DEBUG: T:73,I:95,Ui:70,Ue:0
+DEBUG: T:73,I:92,Ui:70,Ue:0
+DEBUG: T:73,I:92,Ui:70,Ue:0
+DEBUG: T:73,I:89,Ui:70,Ue:0
+DEBUG: T:73,I:90,Ui:70,Ue:0
+DEBUG: T:73,I:84,Ui:0,Ue:0
+DEBUG: T:73,I:92,Ui:70,Ue:0
+DEBUG: T:73,I:88,Ui:70,Ue:0
+DEBUG: T:73,I:89,Ui:70,Ue:0
+DEBUG: T:73,I:85,Ui:0,Ue:0
+DEBUG: T:73,I:90,Ui:70,Ue:0
+DEBUG: T:73,I:85,Ui:70,Ue:0
+DEBUG: T:73,I:80,Ui:70,Ue:0
+DEBUG: T:73,I:82,Ui:0,Ue:0
+DEBUG: T:73,I:78,Ui:0,Ue:0
+DEBUG: T:73,I:83,Ui:70,Ue:0
+DEBUG: T:73,I:82,Ui:70,Ue:0
+DEBUG: T:73,I:78,Ui:70,Ue:0
+DEBUG: T:73,I:82,Ui:70,Ue:0
+DEBUG: T:73,I:84,Ui:70,Ue:0
+DEBUG: T:73,I:81,Ui:0,Ue:0
+DEBUG: T:73,I:75,Ui:40,Ue:0
+DEBUG: T:73,I:79,Ui:70,Ue:0
+DEBUG: T:73,I:72,Ui:0,Ue:9
+DEBUG: T:73,I:76,Ui:51,Ue:0
+DEBUG: T:73,I:73,Ui:0,Ue:0
+DEBUG: T:73,I:73,Ui:0,Ue:0
+DEBUG: T:73,I:79,Ui:70,Ue:0
+DEBUG: T:73,I:73,Ui:0,Ue:0
+DEBUG: T:73,I:78,Ui:70,Ue:0
+DEBUG: T:73,I:72,Ui:0,Ue:0
+DEBUG: T:73,I:73,Ui:0,Ue:0
+DEBUG: T:73,I:76,Ui:51,Ue:0
+DEBUG: T:73,I:73,Ui:0,Ue:0
+DEBUG: T:73,I:78,Ui:70,Ue:0
+DEBUG: T:73,I:75,Ui:40,Ue:0
+DEBUG: T:73,I:67,Ui:0,Ue:36
+DEBUG: T:73,I:76,Ui:70,Ue:0
+DEBUG: T:73,I:76,Ui:51,Ue:0
+DEBUG: T:73,I:70,Ui:0,Ue:22
+DEBUG: T:73,I:68,Ui:0,Ue:32
+DEBUG: T:73,I:68,Ui:0,Ue:50
+DEBUG: T:73,I:69,Ui:0,Ue:27
+DEBUG: T:73,I:68,Ui:0,Ue:50
+DEBUG: T:73,I:68,Ui:0,Ue:50
+DEBUG: T:73,I:68,Ui:0,Ue:32
+DEBUG: T:73,I:73,Ui:0,Ue:0
+DEBUG: T:73,I:70,Ui:0,Ue:22
+DEBUG: T:73,I:74,Ui:24,Ue:0
+DEBUG: T:73,I:75,Ui:40,Ue:0
+DEBUG: T:73,I:71,Ui:0,Ue:16
+DEBUG: T:73,I:73,Ui:0,Ue:0
+DEBUG: T:73,I:72,Ui:0,Ue:9
+DEBUG: T:73,I:74,Ui:24,Ue:0
+DEBUG: T:73,I:70,Ui:0,Ue:22
+DEBUG: T:73,I:73,Ui:0,Ue:0
+DEBUG: T:73,I:71,Ui:0,Ue:16
+DEBUG: T:73,I:72,Ui:0,Ue:9
+DEBUG: T:73,I:69,Ui:0,Ue:50
+DEBUG: T:73,I:70,Ui:0,Ue:22
+DEBUG: T:73,I:68,Ui:0,Ue:50
+DEBUG: T:73,I:66,Ui:0,Ue:40
+DEBUG: T:73,I:68,Ui:0,Ue:50
+DEBUG: T:73,I:69,Ui:0,Ue:50
+DEBUG: T:73,I:77,Ui:70,Ue:0
+DEBUG: T:73,I:81,Ui:70,Ue:0
+DEBUG: T:73,I:76,Ui:70,Ue:0
+DEBUG: T:73,I:71,Ui:0,Ue:16
+DEBUG: T:73,I:76,Ui:70,Ue:0
+DEBUG: T:73,I:76,Ui:51,Ue:0
+DEBUG: T:73,I:68,Ui:0,Ue:50
+DEBUG: T:73,I:77,Ui:59,Ue:0
+DEBUG: T:73,I:71,Ui:0,Ue:16
+DEBUG: T:73,I:70,Ui:0,Ue:22
+DEBUG: T:73,I:66,Ui:0,Ue:50
+DEBUG: T:73,I:74,Ui:24,Ue:0
+DEBUG: T:73,I:68,Ui:0,Ue:50
+DEBUG: T:73,I:69,Ui:0,Ue:27
+DEBUG: T:73,I:78,Ui:70,Ue:0
+DEBUG: T:73,I:74,Ui:24,Ue:0
+DEBUG: T:73,I:68,Ui:0,Ue:32
+DEBUG: T:73,I:64,Ui:0,Ue:50
+DEBUG: T:73,I:72,Ui:0,Ue:9
+DEBUG: T:73,I:77,Ui:70,Ue:0
+DEBUG: T:73,I:68,Ui:0,Ue:32
+DEBUG: T:73,I:68,Ui:0,Ue:50
+DEBUG: T:73,I:64,Ui:0,Ue:50
+DEBUG: T:73,I:72,Ui:0,Ue:0
+DEBUG: T:73,I:76,Ui:49,Ue:0
+DEBUG: T:73,I:70,Ui:0,Ue:22
+DEBUG: T:73,I:73,Ui:0,Ue:0
+DEBUG: T:73,I:66,Ui:0,Ue:41
+DEBUG: T:73,I:75,Ui:38,Ue:0
+DEBUG: T:73,I:74,Ui:21,Ue:0
+DEBUG: T:73,I:72,Ui:0,Ue:0
+DEBUG: T:73,I:73,Ui:0,Ue:0
+DEBUG: T:73,I:69,Ui:0,Ue:50
+DEBUG: T:73,I:68,Ui:0,Ue:50
+DEBUG: T:73,I:68,Ui:0,Ue:50
+DEBUG: T:73,I:70,Ui:0,Ue:0
+DEBUG: T:73,I:70,Ui:0,Ue:0
+DEBUG: T:73,I:73,Ui:0,Ue:0
+DEBUG: T:73,I:71,Ui:0,Ue:0
+DEBUG: T:73,I:70,Ui:0,Ue:0
+DEBUG: T:73,I:66,Ui:0,Ue:0
+DEBUG: T:73,I:72,Ui:0,Ue:10
+DEBUG: T:73,I:72,Ui:0,Ue:0
+DEBUG: T:73,I:73,Ui:0,Ue:0
+DEBUG: T:73,I:69,Ui:0,Ue:28
+DEBUG: T:73,I:62,Ui:0,Ue:50
+DEBUG: T:73,I:70,Ui:0,Ue:23
+DEBUG: T:73,I:72,Ui:0,Ue:0
+DEBUG: T:73,I:65,Ui:0,Ue:0
+DEBUG: T:73,I:68,Ui:0,Ue:50
+DEBUG: T:73,I:70,Ui:0,Ue:23
+DEBUG: T:73,I:66,Ui:0,Ue:50
+DEBUG: T:73,I:74,Ui:21,Ue:0
+DEBUG: T:73,I:71,Ui:0,Ue:17
+DEBUG: T:73,I:72,Ui:0,Ue:10
+DEBUG: T:73,I:70,Ui:0,Ue:0
+DEBUG: T:73,I:72,Ui:0,Ue:10
+DEBUG: T:73,I:70,Ui:0,Ue:22
+DEBUG: T:73,I:68,Ui:0,Ue:0
+DEBUG: T:73,I:70,Ui:0,Ue:22
+DEBUG: T:73,I:71,Ui:0,Ue:0
+DEBUG: T:73,I:71,Ui:0,Ue:17
+DEBUG: T:73,I:76,Ui:70,Ue:0
+DEBUG: T:73,I:69,Ui:0,Ue:28
+DEBUG: T:73,I:76,Ui:70,Ue:0
+DEBUG: T:73,I:80,Ui:70,Ue:0
+DEBUG: T:73,I:78,Ui:0,Ue:0
+DEBUG: T:73,I:75,Ui:0,Ue:0
+DEBUG: T:73,I:83,Ui:0,Ue:0
+DEBUG: T:73,I:78,Ui:0,Ue:0
+Sent command: D0

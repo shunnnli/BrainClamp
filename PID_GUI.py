@@ -744,7 +744,7 @@ opt_text_box.grid(row=11, column=0, columnspan=n_col, padx=5, pady=5, sticky='ns
 entry_kp_inhib.insert(0, "12.50")
 entry_ki_inhib.insert(0, "0.0")
 entry_kd_inhib.insert(0, "0.17")
-entry_kp_excite.insert(0, "5.0")
+entry_kp_excite.insert(0, "5.00")
 entry_ki_excite.insert(0, "0.0")
 entry_kd_excite.insert(0, "0.05")
 entry_max_inhib.insert(0, "70")

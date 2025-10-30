@@ -85,11 +85,9 @@ float Max_excite = 255;
 // -----------------------
 // PID Setup (using PID_v1 library)
 // -----------------------
-// Hysteresis gating between excitation and inhibition
-// -----------------------
-enum ControlSide { SIDE_IDLE, SIDE_EXCITE, SIDE_INHIBIT };
-ControlSide controlSide = SIDE_IDLE;
-
+// Dwell (minimum hold) between side changes
+const unsigned long MIN_HOLD_MS = 10;  // 10 ms dwell
+unsigned long lastSideSwitchMs = 0;
 // Turn-on/turn-off thresholds (in units of error = input - target).
 // For ZSCORE normalization, these are in z-score units.
 // Positive error -> signal too high -> use inhibition
@@ -629,14 +627,20 @@ void loop() {
       // If either channel is in fixed-output mode, skip gating and let
       // the fixed-output logic below take effect; set both PIDs to MANUAL.
       if (fixInhib || fixExcite) {
-        myPID_inhibit.SetMode(MANUAL);  output_inhibit = 0;
-        myPID_excite.SetMode(MANUAL);   output_excite  = 0;
+        myPID_inhibit.SetMode(MANUAL);
+        myPID_excite.SetMode(MANUAL);
       } else {
-        // Update mode with hysteresis
-        if (controlSide != SIDE_INHIBIT && e >  EPS_ON)  controlSide = SIDE_INHIBIT;
-        if (controlSide != SIDE_EXCITE && e < -EPS_ON) controlSide = SIDE_EXCITE;
-        if (controlSide == SIDE_INHIBIT  && e <  EPS_OFF)  controlSide = SIDE_IDLE;
-        if (controlSide == SIDE_EXCITE && e > -EPS_OFF) controlSide = SIDE_IDLE;
+        // Update mode with hysteresis + dwell
+        ControlSide wantSide = controlSide;
+        if (controlSide != SIDE_INHIBIT && e >  EPS_ON)  wantSide = SIDE_INHIBIT;
+        if (controlSide != SIDE_EXCITE  && e < -EPS_ON)  wantSide = SIDE_EXCITE;
+        if (controlSide == SIDE_INHIBIT && e <  EPS_OFF) wantSide = SIDE_IDLE;
+        if (controlSide == SIDE_EXCITE  && e > -EPS_OFF) wantSide = SIDE_IDLE;
+
+        if (wantSide != controlSide && (millis() - lastSideSwitchMs) >= MIN_HOLD_MS) {
+          controlSide = wantSide;
+          lastSideSwitchMs = millis();
+        }
 
         // Set PID modes based on which side is active
         if (controlSide == SIDE_EXCITE) {
@@ -651,8 +655,8 @@ void loop() {
         }
 
         // Compute only the active side
-        control_inhibit = (controlSide==SIDE_INHIBIT) ? myPID_inhibit.Compute() : 0;
-        control_excite  = (controlSide==SIDE_EXCITE ) ? myPID_excite.Compute() : 0;
+        if (controlSide == SIDE_INHIBIT) { myPID_inhibit.Compute(); }
+        if (controlSide == SIDE_EXCITE)  { myPID_excite.Compute();  }
       }
 
 
@@ -661,23 +665,28 @@ void loop() {
       if (ClampON) {
         if (fixInhib){
           control_inhibit = constantInhib;
-        }else{
+        } else if (controlSide == SIDE_INHIBIT){
           // 1) normalize
           double norm = constrain(output_inhibit/Max_inhibit, 0.0, 1.0);
           // 2) inverse exponential mapping (amplifies small inputs, compresses large)
           expo = log(1.0 + norm * (exp(k_inhibit) - 1.0)) / k_inhibit;
           // 3) rescale to PWM range
           control_inhibit = expo * Max_inhibit + 0.5;
+        } else {
+          control_inhibit = 0;
         }
+
         if (fixExcite){
           control_excite = constantExcite;
-        }else{
+        } else if (controlSide == SIDE_EXCITE){
           // 1) normalize
           double norm = constrain(output_excite/Max_excite, 0.0, 1.0);
           // 2) inverse exponential mapping (amplifies small inputs, compresses large)
           expo = log(1.0 + norm * (exp(k_excite) - 1.0)) / k_excite;
           // 3) rescale to PWM range
           control_excite = expo * Max_excite + 0.5;
+        } else {
+          control_excite = 0;
         }
       } else {
         control_inhibit = 0;

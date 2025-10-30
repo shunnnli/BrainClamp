@@ -88,6 +88,9 @@ float Max_excite = 255;
 // Dwell (minimum hold) between side changes
 const unsigned long MIN_HOLD_MS = 10;  // 10 ms dwell
 unsigned long lastSideSwitchMs = 0;
+// Control side state machine
+enum ControlSide { SIDE_IDLE, SIDE_EXCITE, SIDE_INHIBIT };
+ControlSide controlSide = SIDE_IDLE;
 // Turn-on/turn-off thresholds (in units of error = input - target).
 // For ZSCORE normalization, these are in z-score units.
 // Positive error -> signal too high -> use inhibition

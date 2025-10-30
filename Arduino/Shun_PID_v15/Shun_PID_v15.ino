@@ -642,14 +642,12 @@ void loop() {
         if (controlSide == SIDE_EXCITE) {
           myPID_excite.SetMode(AUTOMATIC);
           myPID_inhibit.SetMode(MANUAL);
-          output_inhibit = 0;
         } else if (controlSide == SIDE_INHIBIT) {
           myPID_inhibit.SetMode(AUTOMATIC);
           myPID_excite.SetMode(MANUAL);
-          output_excite = 0;
         } else { // SIDE_IDLE
-          myPID_inhibit.SetMode(MANUAL); output_inhibit = 0;
-          myPID_excite.SetMode(MANUAL);  output_excite  = 0;
+          myPID_inhibit.SetMode(MANUAL);
+          myPID_excite.SetMode(MANUAL);
         }
 
         // Compute only the active side

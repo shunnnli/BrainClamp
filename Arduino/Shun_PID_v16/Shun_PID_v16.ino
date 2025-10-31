@@ -128,6 +128,7 @@ unsigned long lastInput = 0;
 static uint32_t fsLastMs = 0;
 static uint16_t fsCount = 0;
 static uint16_t fsHz = 0;
+static uint16_t fsSampleMs = 0;  // measured sample time in milliseconds
 
 // -----------------------
 // Fast Baseline Statistics Functions
@@ -714,13 +715,14 @@ void loop() {
       // --- Measure PID loop frequency (Fs) ---
       fsCount++;
       uint32_t _now = millis();
-      if (_now - fsLastMs >= 1000) {
+      if (_now - fsLastMs >= 500) {
         fsHz = (uint16_t)((fsCount * 1000UL) / (_now - fsLastMs));
+        fsSampleMs = (fsHz > 0) ? (uint16_t)(1000UL / fsHz) : 0;
         fsCount = 0;
         fsLastMs = _now;
         if (debugMode) {
-          Serial.print("FS:");
-          Serial.println(fsHz);
+          Serial.print("STms:");
+          Serial.println(fsSampleMs);
         }
       }
 

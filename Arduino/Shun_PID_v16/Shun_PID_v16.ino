@@ -633,14 +633,19 @@ void loop() {
         myPID_inhibit.SetMode(MANUAL);
         myPID_excite.SetMode(MANUAL);
       } else {
-        // Update mode with hysteresis + dwell
+        // Update mode with hysteresis; no dwell in IDLE, dwell only side-to-side
         ControlSide wantSide = controlSide;
         if (controlSide != SIDE_INHIBIT && e >  EPS_ON)  wantSide = SIDE_INHIBIT;
         if (controlSide != SIDE_EXCITE  && e < -EPS_ON)  wantSide = SIDE_EXCITE;
         if (controlSide == SIDE_INHIBIT && e <  EPS_OFF) wantSide = SIDE_IDLE;
         if (controlSide == SIDE_EXCITE  && e > -EPS_OFF) wantSide = SIDE_IDLE;
 
-        if (wantSide != controlSide && (millis() - lastSideSwitchMs) >= MIN_HOLD_MS) {
+        bool canSwitch   = (millis() - lastSideSwitchMs) >= MIN_HOLD_MS;
+        bool leavingIdle = (controlSide == SIDE_IDLE && wantSide != SIDE_IDLE);
+        bool goingToIdle = (controlSide != SIDE_IDLE && wantSide == SIDE_IDLE);
+        bool sideToSide  = (controlSide != SIDE_IDLE && wantSide != SIDE_IDLE && wantSide != controlSide);
+
+        if (leavingIdle || goingToIdle || (sideToSide && canSwitch)) {
           controlSide = wantSide;
           lastSideSwitchMs = millis();
         }

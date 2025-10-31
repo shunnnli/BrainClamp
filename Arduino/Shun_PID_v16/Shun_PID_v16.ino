@@ -124,6 +124,11 @@ unsigned long LastSampleTime = 0;
 unsigned long nSample = 1;
 unsigned long lastInput = 0;
 
+// Loop frequency measurement (PID Fs)
+static uint32_t fsLastMs = 0;
+static uint16_t fsCount = 0;
+static uint16_t fsHz = 0;
+
 // -----------------------
 // Fast Baseline Statistics Functions
 // -----------------------
@@ -705,6 +710,19 @@ void loop() {
       // Write outputs to respective pins
       analogWrite(ControlPin_inhibit, (int)control_inhibit);
       analogWrite(ControlPin_excite, (int)control_excite);
+
+      // --- Measure PID loop frequency (Fs) ---
+      fsCount++;
+      uint32_t _now = millis();
+      if (_now - fsLastMs >= 1000) {
+        fsHz = (uint16_t)((fsCount * 1000UL) / (_now - fsLastMs));
+        fsCount = 0;
+        fsLastMs = _now;
+        if (debugMode) {
+          Serial.print("FS:");
+          Serial.println(fsHz);
+        }
+      }
 
       // Serial output
       // If online tuning mode is active, output only the error.

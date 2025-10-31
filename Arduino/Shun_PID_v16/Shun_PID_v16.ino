@@ -124,11 +124,10 @@ unsigned long LastSampleTime = 0;
 unsigned long nSample = 1;
 unsigned long lastInput = 0;
 
-// Loop frequency measurement (PID Fs)
-static uint32_t fsLastMs = 0;
+// Loop sample-time measurement (microseconds)
+static uint32_t fsLastUs = 0;
 static uint16_t fsCount = 0;
-static uint16_t fsHz = 0;
-static uint16_t fsSampleMs = 0;  // measured sample time in milliseconds
+static uint32_t fsSampleUs = 0;  // average sample time in microseconds
 
 // -----------------------
 // Fast Baseline Statistics Functions
@@ -712,17 +711,17 @@ void loop() {
       analogWrite(ControlPin_inhibit, (int)control_inhibit);
       analogWrite(ControlPin_excite, (int)control_excite);
 
-      // --- Measure PID loop frequency (Fs) ---
+      // --- Measure PID sample time (microseconds only) ---
       fsCount++;
-      uint32_t _now = millis();
-      if (_now - fsLastMs >= 500) {
-        fsHz = (uint16_t)((fsCount * 1000UL) / (_now - fsLastMs));
-        fsSampleMs = (fsHz > 0) ? (uint16_t)(1000UL / fsHz) : 0;
+      uint32_t nowUs = micros();
+      if (nowUs - fsLastUs >= 500000UL) { // compute about twice per second
+        uint32_t elapsedUs = nowUs - fsLastUs;
+        fsSampleUs = (fsCount > 0) ? (elapsedUs / fsCount) : 0;  // average period (µs)
         fsCount = 0;
-        fsLastMs = _now;
+        fsLastUs = nowUs;
         if (debugMode) {
-          Serial.print("STms:");
-          Serial.println(fsSampleMs);
+          Serial.print("DEBUG:STus:");
+          Serial.println(fsSampleUs);
         }
       }
 

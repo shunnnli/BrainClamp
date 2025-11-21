@@ -34,7 +34,7 @@ float expo;
 double signal = 0;
 
 // Baseline estimator parameters (EWMA)
-const double baselineTauS = 60.0;  // adapts over ~60 s; increase to slow adaptation
+double baselineTauS = 60.0;  // adapts over ~60 s; increase to slow adaptation
 const double STD_FLOOR    = 0.1;   // minimum sigma to avoid division blow-ups (units of input_filt)
 
 double baseline = 0.0;

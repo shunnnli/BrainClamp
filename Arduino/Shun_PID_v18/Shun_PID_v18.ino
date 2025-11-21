@@ -71,10 +71,11 @@ double control_excite;   // Final control value for excitation laser
 // Default PID parameters for inhibition (reverse action) & excitation (direct)
 double Kp_inhibit = 20, Ki_inhibit = 0, Kd_inhibit = 1;
 double Kp_excite = 20, Ki_excite = 0, Kd_excite = 0.5;
-double PIDSampleTime = PID_TS_MS;  // in ms
 // --- Control scheduler & filter settings ---
 const unsigned long PID_TS_MS = 5;   // 200 Hz control update
 const double EMA_TAU_MS = 10.0;      // EMA time constant for input prefilter (tune 5–20 ms)
+double PIDSampleTime = PID_TS_MS;  // in ms
+
 
 float Max_inhibit = 255;
 float Max_excite = 255;

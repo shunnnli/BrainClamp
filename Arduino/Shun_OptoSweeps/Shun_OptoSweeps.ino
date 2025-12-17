@@ -90,7 +90,7 @@ unsigned long End = 0; //timestamp for ending the session
 
 void setup() { //Setup function called when sketch starts. The setup function is used to initialize variables, pin modes, etc.
 
-  Serial.begin(115200); //Set the data rate in bits per second. 115200 is default
+  Serial.begin(500000); //Set the data rate in bits per second. 115200 is default
 
   pinMode(ShutterBlue, OUTPUT);
   pinMode(ShutterRed, OUTPUT);

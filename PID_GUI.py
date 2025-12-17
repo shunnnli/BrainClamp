@@ -179,14 +179,14 @@ def set_photometry_settings():
         eps_on = float(entry_eps_on.get())
         eps_off = float(entry_eps_off.get())
 
-        # Build a command: P<baselineSampleDuration>,<normalizationMethod>,<eps_on>,<eps_off>\n
+        # Build a command: P<baselineTauS>,<normalizationMethod>,<eps_on>,<eps_off>\n
         cmd = "P" + f"{baselineSampleDuration},{normalizationMethod},{eps_on},{eps_off},\n"
         send_command(cmd)
         log_message("Photometry settings updated.")
         photo_info_label.config(text=(
             "           Photometry Settings\n"
             f"  Low pass filter: 50 Hz\n"
-            f"  Baseline sample:   {baselineSampleDuration} ms\n"
+            f"  Baseline tau:      {baselineSampleDuration} s\n"
             f"  Normalization:     {norm_var.get()}\n"
             f"  EPS_ON: {eps_on}  EPS_OFF: {eps_off}"
         ))
@@ -702,7 +702,7 @@ entry_photometryWindow.config(state="disabled")
 entry_photometryWindow.grid(row=4, column=5, padx=5, pady=5)
 tk.Label(root, text="Baseline time constant (s):").grid(row=5, column=4, padx=5, pady=5)
 entry_baselineSample = tk.Entry(root)
-entry_baselineSample.insert(0, "60")  # match Arduino default baselineTauS = 60 s
+entry_baselineSample.insert(0, "180")  # match Arduino default baselineTauS = 180 s (~3 min)
 entry_baselineSample.grid(row=5, column=5, padx=5, pady=5)
 tk.Label(root, text="Normalization method:").grid(row=6, column=4, padx=5, pady=5)
 norm_options = ["RAW", "ZSCORE"]

@@ -263,11 +263,9 @@ def read_clamp_status():
                 continue
 
             if debugModeGUI:
-                # In debug mode, read fastlog results and display them
-                if ser.in_waiting:
-                    line = ser.readline().decode('utf-8', errors='ignore').strip()
-                    if line:  # Only log nonempty lines
-                        log_message("DEBUG: " + line)
+                # In debug mode, show whatever line we just read (fastlog, squared error, etc.)
+                if line:  # Only log nonempty lines
+                    log_message("DEBUG: " + line)
             else:
                 # In non-debug mode, we simply flush the buffer (to avoid accumulation)
                 ser.reset_input_buffer()

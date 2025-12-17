@@ -702,9 +702,9 @@ entry_photometryWindow = tk.Entry(root)
 entry_photometryWindow.insert(0, "50")
 entry_photometryWindow.config(state="disabled")
 entry_photometryWindow.grid(row=4, column=5, padx=5, pady=5)
-tk.Label(root, text="Baseline sample duration (ms):").grid(row=5, column=4, padx=5, pady=5)
+tk.Label(root, text="Baseline time constant (s):").grid(row=5, column=4, padx=5, pady=5)
 entry_baselineSample = tk.Entry(root)
-entry_baselineSample.insert(0, "3000")  # default 3000 ms
+entry_baselineSample.insert(0, "60")  # match Arduino default baselineTauS = 60 s
 entry_baselineSample.grid(row=5, column=5, padx=5, pady=5)
 tk.Label(root, text="Normalization method:").grid(row=6, column=4, padx=5, pady=5)
 norm_options = ["RAW", "ZSCORE"]
@@ -731,7 +731,7 @@ set_photo_button.grid(row=9, column=4, columnspan=2, padx=5, pady=5)
 photo_info_label_text =(
     "           Photometry Settings\n"
     f"  Low pass filter: 50 Hz\n"
-    f"  Baseline sample:   {float(entry_baselineSample.get())} ms\n"
+    f"  Baseline tau:      {float(entry_baselineSample.get())} s\n"
     f"  Normalization:     {norm_var.get()}\n"
     f"  EPS_ON: {float(entry_eps_on.get())}  EPS_OFF: {float(entry_eps_off.get())}"
 )

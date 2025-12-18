@@ -613,10 +613,7 @@ void loop() {
     // Control state: run the PIDs, update target, and output control signals
     case Control:
       // Debug: mark entry into Control state and dump key flags
-      Serial.print("STATE:Control, debugMode=");
-      Serial.print(debugMode);
-      Serial.print(" onlineTuningMode=");
-      Serial.println(onlineTuningMode);
+      Serial.println(">>> ENTERED CONTROL <<<");
 
       // Determine input & output
       // if (debugMode){

@@ -585,7 +585,7 @@ void loop() {
       break;
 
     // Photometry state: process sensor data & calculate moving average and baseline
-    case Photometry:
+    case Photometry: {
       // Calculate moving average of photometry
       // if (debugMode) {
       //   Serial.print(" Duration: ");
@@ -596,22 +596,23 @@ void loop() {
       // EMA prefilter on the raw signal
       if (!input_filt_initialized) { input_filt = signal; input_filt_initialized = true; }
       else {
-        const double alpha = (EMA_TAU_MS > 0.0) ? (1.0 - exp(-(double)PIDSampleTime/EMA_TAU_MS)) : 1.0;
+        double alpha = (EMA_TAU_MS > 0.0) ? (1.0 - exp(-(double)PIDSampleTime/EMA_TAU_MS)) : 1.0;
         input_filt += alpha * (signal - input_filt);
       }
       state = Control;
 
       // Update EWMA baseline once per sample (from filtered input)
-      const double dt_s = (double)PID_TS_MS / 1000.0;
-      const bool baselineEligible = (controlSide == SIDE_IDLE);
+      double dt_s = (double)PID_TS_MS / 1000.0;
+      bool baselineEligible = (controlSide == SIDE_IDLE);
       // Conservative outlier gating to prevent contamination
-      const bool gateOutliers = true;
+      bool gateOutliers = true;
       updateBaselineEWMA(input_filt, dt_s, baselineEligible, gateOutliers);
       break;
+    }
 
 
     // Control state: run the PIDs, update target, and output control signals
-    case Control:
+    case Control: {
       // Debug: mark entry into Control state and dump key flags
       Serial.println(">>> ENTERED CONTROL <<<");
 
@@ -774,5 +775,6 @@ void loop() {
 
       state = Photometry;  // Return to photometry for next sample
       break;
+    }
   }
 }

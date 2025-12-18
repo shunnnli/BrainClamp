@@ -584,7 +584,7 @@ void loop() {
     // Photometry state: process sensor data & calculate moving average and baseline
     case Photometry:
       // Debug: mark entry into Photometry state
-      Serial.println("STATE:Photometry");
+      Serial.println(state);
       // Calculate moving average of photometry
       // if (debugMode) {
       //   Serial.print(" Duration: ");
@@ -606,6 +606,7 @@ void loop() {
       // Conservative outlier gating to prevent contamination
       const bool gateOutliers = true;
       updateBaselineEWMA(input_filt, dt_s, baselineEligible, gateOutliers);
+      Serial.println(state);
       break;
 
 

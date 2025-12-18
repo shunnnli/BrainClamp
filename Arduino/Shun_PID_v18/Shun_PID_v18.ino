@@ -299,8 +299,9 @@ void setup() {
 // Main Loop
 // -----------------------
 void loop() {
+  Serial.print("STATEbefore:");
+  Serial.println(state);
   // --- Mode Control via Serial Commands ---
-  // 't' toggles online tuning mode
   if (Serial.available() > 0) {
     char inChar = Serial.read();
     if (inChar == 't') {
@@ -384,7 +385,7 @@ void loop() {
     // Calibration command
     else if (inChar == 'C') {
       // Wait for the rest of the command
-      while (!Serial.available()) { ; }
+      while (!Serial.available()) {}
       String paramStr = Serial.readStringUntil('\n');
       paramStr.trim();
       int commaIndex = paramStr.indexOf(',');
@@ -571,6 +572,8 @@ void loop() {
   // -----------------------
   // State Machine
   // -----------------------
+  Serial.print("STATE:");
+  Serial.println(state);
   switch (state) {
     // Idle state: waiting to start
     case Idle:
@@ -583,8 +586,6 @@ void loop() {
 
     // Photometry state: process sensor data & calculate moving average and baseline
     case Photometry:
-      // Debug: mark entry into Photometry state
-      Serial.println(state);
       // Calculate moving average of photometry
       // if (debugMode) {
       //   Serial.print(" Duration: ");
@@ -606,7 +607,6 @@ void loop() {
       // Conservative outlier gating to prevent contamination
       const bool gateOutliers = true;
       updateBaselineEWMA(input_filt, dt_s, baselineEligible, gateOutliers);
-      Serial.println(state);
       break;
 
 

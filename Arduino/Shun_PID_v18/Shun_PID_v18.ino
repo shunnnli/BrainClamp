@@ -299,8 +299,6 @@ void setup() {
 // Main Loop
 // -----------------------
 void loop() {
-  Serial.print("STATEbefore:");
-  Serial.println(state);
   // --- Mode Control via Serial Commands ---
   if (Serial.available() > 0) {
     char inChar = Serial.read();
@@ -534,7 +532,6 @@ void loop() {
       Serial.print("CLAMP:");
       Serial.println("1");
       Serial.println("Received 8: PIDs set to AUTOMATIC");
-      Serial.println("DEBUG: received 8, setting state=Photometry");
       Start = millis();
       End = 0;
       LastSampleTime = 0;
@@ -572,8 +569,6 @@ void loop() {
   // -----------------------
   // State Machine
   // -----------------------
-  Serial.print("STATE:");
-  Serial.println(state);
   switch (state) {
     // Idle state: waiting to start
     case Idle:
@@ -613,9 +608,6 @@ void loop() {
 
     // Control state: run the PIDs, update target, and output control signals
     case Control: {
-      // Debug: mark entry into Control state and dump key flags
-      Serial.println(">>> ENTERED CONTROL <<<");
-
       // Determine input & output
       // if (debugMode){
       //   Serial.print(" PID loop time: ");
@@ -655,10 +647,10 @@ void loop() {
       double e = (input - target);
 
       // Debug: show error and control side before PID/gating
-      Serial.print("DEBUG:e=");
-      Serial.print(e, 4);
-      Serial.print(" controlSide(before)=");
-      Serial.println((int)controlSide);
+      // Serial.print("DEBUG:e=");
+      // Serial.print(e, 4);
+      // Serial.print(" controlSide(before)=");
+      // Serial.println((int)controlSide);
 
       // If either channel is in fixed-output mode, skip gating and let
       // the fixed-output logic below take effect; set both PIDs to MANUAL.
@@ -696,8 +688,8 @@ void loop() {
         }
 
         // Debug: show chosen controlSide after gating
-        Serial.print("DEBUG:controlSide(after)=");
-        Serial.println((int)controlSide);
+        // Serial.print("DEBUG:controlSide(after)=");
+        // Serial.println((int)controlSide);
 
         // Compute only the active side
         if (controlSide == SIDE_INHIBIT) { myPID_inhibit.Compute(); }
@@ -765,7 +757,6 @@ void loop() {
         Serial.print("DEBUG:sqErr=");
         Serial.println(squaredError);
       } else if (debugMode) {
-        Serial.println("DEBUG:calling fastLog");
         fastLog(target, input, control_inhibit, control_excite);
       } else {
         // Send clamp status to GUI
